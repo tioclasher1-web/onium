@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onium Race - Key Management System (Cloud Database)</title>
+    <title>Onium Race - Key Management System (Supabase Cloud)</title>
     
     <style>
         * {
@@ -179,6 +179,7 @@
             font-weight: bold;
             color: #667eea;
             margin: 10px 0;
+            word-break: break-all;
         }
         
         .table-container {
@@ -232,10 +233,14 @@
             padding: 6px 12px;
             font-size: 12px;
             margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
         
         .delete-btn {
             background: #dc3545;
+            color: white;
         }
         
         .reset-device-btn {
@@ -392,7 +397,8 @@
                             <thead>
                                 <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
                             </thead>
-                            <tbody id="keysTableBody"><tr><td colspan="5"><div class="loading"></div> Loading...</td></tr></tbody>
+                            <tbody id="keysTableBody"><tr><td colspan="5"><div class="loading"></div> Loading...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -418,7 +424,7 @@
                         <div class="key-display" id="generatedKey"></div>
                         <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
                         <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
-                        <p style="color: #667eea; margin-top: 15px;">🎉 Data tersimpan di cloud, tidak akan hilang!</p>
+                        <p style="color: #667eea; margin-top: 15px;">🎉 Data tersimpan di cloud Supabase, tidak akan hilang!</p>
                     </div>
                     <div id="generateMessage" class="message"></div>
                 </div>
@@ -437,12 +443,13 @@
         </div>
     </div>
     
-    <div class="api-status" id="apiStatus">☁️ Connecting to Cloud...</div>
-    
+    <div class="api-status" id="apiStatus">☁️ Connecting to Supabase...</div>
+
     <script>
         // ========== 🔴 GANTI DENGAN CREDENTIAL SUPABASE ANDA 🔴 ==========
-        const SUPABASE_URL = 'https://awikwxarhdklwvfhhglh.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr'; // Ganti dengan anon key Anda!
+        // Ambil dari: Dashboard Supabase → Project Settings → API
+       const SUPABASE_URL = 'https://awikwxarhdklwvfhhglh.supabase.co';
+       const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr'; // Ganti dengan anon key Anda!
         // =================================================================
         
         let keysData = {};
@@ -458,46 +465,68 @@
                     }
                 });
                 
-                if (!response.ok) throw new Error('Gagal load data');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
                 
                 const data = await response.json();
                 keysData = {};
                 
-                data.forEach(row => {
-                    keysData[row.key] = {
-                        key: row.key,
-                        activeDays: row.active_days,
-                        maxDevices: row.max_devices,
-                        firstUsed: row.first_used,
-                        devices: row.devices || {},
-                        createdAt: row.created_at
-                    };
-                });
+                if (data && Array.isArray(data)) {
+                    data.forEach(row => {
+                        keysData[row.key] = {
+                            key: row.key,
+                            activeDays: row.active_days,
+                            maxDevices: row.max_devices,
+                            firstUsed: row.first_used,
+                            devices: row.devices || {},
+                            createdAt: row.created_at
+                        };
+                    });
+                }
                 
                 renderDashboard();
-                document.getElementById('apiStatus').innerHTML = '☁️ Cloud Active ✅';
+                document.getElementById('apiStatus').innerHTML = '☁️ Supabase Connected ✅';
                 document.getElementById('apiStatus').style.color = '#0f0';
                 
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error detail:', error);
                 document.getElementById('apiStatus').innerHTML = '❌ Connection Failed';
                 document.getElementById('apiStatus').style.color = '#f00';
-                showMessage('Gagal konek ke database: ' + error.message, 'error', 'generateMessage');
+                showMessage('Gagal konek ke Supabase: ' + error.message, 'error', 'generateMessage');
+                
+                // Fallback ke localStorage jika Supabase gagal
+                loadFromLocalStorage();
             }
+        }
+        
+        // Fallback jika Supabase error
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('onium_race_keys_backup');
+            if (saved) {
+                keysData = JSON.parse(saved);
+                renderDashboard();
+                showMessage('Menggunakan mode offline (local storage)', 'error', 'generateMessage');
+            }
+        }
+        
+        function saveToLocalStorage() {
+            localStorage.setItem('onium_race_keys_backup', JSON.stringify(keysData));
         }
         
         async function saveToSupabase(key, data) {
             const exists = keysData[key];
             
+            let response;
             if (!exists) {
                 // INSERT key baru
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/keys`, {
+                response = await fetch(`${SUPABASE_URL}/rest/v1/keys`, {
                     method: 'POST',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=representation'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         key: key,
@@ -508,12 +537,9 @@
                         created_at: data.createdAt
                     })
                 });
-                
-                if (!response.ok) throw new Error('Gagal save key');
-                
             } else {
                 // UPDATE key yang sudah ada
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
+                response = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
                     method: 'PATCH',
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
@@ -527,11 +553,16 @@
                         devices: data.devices
                     })
                 });
-                
-                if (!response.ok) throw new Error('Gagal update key');
             }
             
-            await loadData(); // Refresh data
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Supabase error: ${response.status} - ${errorText}`);
+            }
+            
+            // Backup ke localStorage
+            saveToLocalStorage();
+            await loadData();
         }
         
         async function deleteFromSupabase(key) {
@@ -544,6 +575,9 @@
             });
             
             if (!response.ok) throw new Error('Gagal delete key');
+            
+            // Backup ke localStorage
+            saveToLocalStorage();
             await loadData();
         }
         
@@ -620,6 +654,7 @@
             }
         }
         
+        // Event Listeners
         document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const activeDays = parseInt(document.getElementById('activeDays').value);
@@ -653,10 +688,10 @@
                 document.getElementById('maxDevices').value = '';
                 
                 setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
-                showMessage('Key berhasil dibuat dan tersimpan di cloud!', 'success', 'generateMessage');
+                showMessage('✅ Key berhasil dibuat dan tersimpan di cloud Supabase!', 'success', 'generateMessage');
                 
             } catch (error) {
-                showMessage('Gagal menyimpan key: ' + error.message, 'error', 'generateMessage');
+                showMessage('❌ Gagal menyimpan key: ' + error.message, 'error', 'generateMessage');
             }
         });
         
@@ -680,6 +715,7 @@
             setTimeout(() => msgDiv.classList.remove('show'), 3000);
         }
         
+        // Navigasi
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 const page = link.dataset.page;
@@ -694,7 +730,7 @@
         // API untuk Lua executor
         window.OniumAPI = {
             validateKey: async function(key, deviceId, deviceName) {
-                await loadData(); // Refresh data terbaru
+                await loadData();
                 const keyData = keysData[key];
                 
                 if (!keyData) return { success: false, valid: false, error: 'Key tidak valid' };
@@ -724,14 +760,47 @@
             getAllKeys: async function() {
                 await loadData();
                 return keysData;
+            },
+            
+            generateKey: async function(activeDays, maxDevices) {
+                let newKey = generateKey();
+                while (keysData[newKey]) newKey = generateKey();
+                
+                const keyData = {
+                    key: newKey,
+                    activeDays: activeDays,
+                    maxDevices: maxDevices,
+                    firstUsed: null,
+                    devices: {},
+                    createdAt: new Date().toISOString()
+                };
+                
+                await saveToSupabase(newKey, keyData);
+                return { success: true, key: newKey, activeDays: activeDays, maxDevices: maxDevices };
+            },
+            
+            resetKey: async function(key) {
+                if (!keysData[key]) return { success: false, error: 'Key tidak ditemukan' };
+                keysData[key].devices = {};
+                keysData[key].firstUsed = null;
+                await saveToSupabase(key, keysData[key]);
+                return { success: true, message: 'Key berhasil direset' };
             }
         };
         
-        // Start app
+        // Start aplikasi
         loadData();
+        
+        // Auto refresh dashboard setiap 5 detik
         setInterval(() => {
-            if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
+            if (document.getElementById('dashboard').classList.contains('active')) {
+                loadData();
+            }
         }, 5000);
+        
+        console.log('🚀 Onium Race Key System siap digunakan!');
+        console.log('📦 Data tersimpan di Supabase cloud');
+        console.log('💾 Backup otomatis ke localStorage');
     </script>
 </body>
 </html>
