@@ -6,58 +6,85 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
 
-// Supabase Configuration (isi dari dashboard Supabase)
+// ========== SUPABASE CONFIG ==========
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Cek apakah environment variables tersedia
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ ERROR: SUPABASE_URL atau SUPABASE_ANON_KEY tidak diset di environment variables!');
+}
+
+const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
 
 // ========== DATABASE FUNCTIONS ==========
 async function getKey(key) {
-    const { data, error } = await supabase
-        .from('keys')
-        .select('*')
-        .eq('key', key)
-        .single();
-    
-    if (error) return null;
-    return data;
+    try {
+        const { data, error } = await supabase
+            .from('keys')
+            .select('*')
+            .eq('key', key)
+            .single();
+        
+        if (error) return null;
+        return data;
+    } catch (error) {
+        console.error('getKey error:', error);
+        return null;
+    }
 }
 
 async function getAllKeys() {
-    const { data, error } = await supabase
-        .from('keys')
-        .select('*')
-        .order('created_at', { ascending: false });
-    
-    if (error) return {};
-    
-    const result = {};
-    data.forEach(item => {
-        result[item.key] = item;
-    });
-    return result;
+    try {
+        const { data, error } = await supabase
+            .from('keys')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) return {};
+        
+        const result = {};
+        if (data) {
+            data.forEach(item => {
+                result[item.key] = item;
+            });
+        }
+        return result;
+    } catch (error) {
+        console.error('getAllKeys error:', error);
+        return {};
+    }
 }
 
 async function saveKey(keyData) {
-    const { data, error } = await supabase
-        .from('keys')
-        .upsert(keyData)
-        .select();
-    
-    if (error) throw error;
-    return data;
+    try {
+        const { data, error } = await supabase
+            .from('keys')
+            .upsert(keyData)
+            .select();
+        
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('saveKey error:', error);
+        throw error;
+    }
 }
 
 async function deleteKey(key) {
-    const { error } = await supabase
-        .from('keys')
-        .delete()
-        .eq('key', key);
-    
-    if (error) throw error;
-    return true;
+    try {
+        const { error } = await supabase
+            .from('keys')
+            .delete()
+            .eq('key', key);
+        
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('deleteKey error:', error);
+        throw error;
+    }
 }
 
 // ========== HELPER FUNCTIONS ==========
@@ -110,6 +137,7 @@ app.get('/api/keys', async (req, res) => {
         
         res.json(keysWithInfo);
     } catch (error) {
+        console.error('/api/keys error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -156,6 +184,7 @@ app.post('/api/generate-key', async (req, res) => {
             message: 'Terima kasih sudah membeli VIP kami'
         });
     } catch (error) {
+        console.error('/api/generate-key error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -174,7 +203,6 @@ app.post('/api/use-key', async (req, res) => {
             return res.status(404).json({ error: 'Key tidak valid', valid: false });
         }
         
-        // Cek expired
         if (keyData.first_used) {
             const remaining = getRemainingDays(keyData);
             if (remaining <= 0) {
@@ -185,7 +213,6 @@ app.post('/api/use-key', async (req, res) => {
         const devices = keyData.devices || {};
         const currentDevices = Object.keys(devices).length;
         
-        // Cek device sudah terdaftar
         if (devices[deviceId]) {
             return res.json({
                 valid: true,
@@ -196,7 +223,6 @@ app.post('/api/use-key', async (req, res) => {
             });
         }
         
-        // Cek slot device
         if (currentDevices >= keyData.max_devices) {
             return res.status(403).json({
                 error: 'Batas device tercapai',
@@ -205,13 +231,11 @@ app.post('/api/use-key', async (req, res) => {
             });
         }
         
-        // First time use
         let firstUsed = keyData.first_used;
         if (!firstUsed) {
             firstUsed = new Date().toISOString();
         }
         
-        // Register device
         devices[deviceId] = {
             deviceId: deviceId,
             deviceName: deviceName || 'Unknown',
@@ -232,6 +256,7 @@ app.post('/api/use-key', async (req, res) => {
             message: 'Key berhasil diaktifkan'
         });
     } catch (error) {
+        console.error('/api/use-key error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -261,6 +286,7 @@ app.post('/api/reset-key', async (req, res) => {
             message: 'Key berhasil direset'
         });
     } catch (error) {
+        console.error('/api/reset-key error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -275,17 +301,20 @@ app.delete('/api/delete-key/:key', async (req, res) => {
             message: 'Key berhasil dihapus'
         });
     } catch (error) {
+        console.error('/api/delete-key error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // ========== SERVE HTML ==========
-const htmlTemplate = `<!DOCTYPE html>
+app.get('/', (req, res) => {
+    res.send(`<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Onium Race - Key Management System</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏁%3C/text%3E%3C/svg%3E">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -299,31 +328,23 @@ const htmlTemplate = `<!DOCTYPE html>
             background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
             color: white;
             padding: 30px 20px;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 24px; }
-        .nav-menu { list-style: none; }
-        .nav-item { margin-bottom: 15px; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; }
         .nav-link {
             display: flex;
             align-items: center;
             padding: 12px 20px;
             color: #ecf0f1;
-            text-decoration: none;
             border-radius: 10px;
-            transition: all 0.3s ease;
             cursor: pointer;
+            margin-bottom: 10px;
         }
-        .nav-link:hover { background: rgba(255,255,255,0.1); transform: translateX(5px); }
+        .nav-link:hover { background: rgba(255,255,255,0.1); }
         .nav-link.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .nav-link .emoji { margin-right: 12px; font-size: 20px; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .page { display: none; animation: fadeIn 0.5s ease; }
+        .page { display: none; }
         .page.active { display: block; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         .card {
             background: white;
             border-radius: 15px;
@@ -331,7 +352,7 @@ const htmlTemplate = `<!DOCTYPE html>
             margin-bottom: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        .card h3 { margin-bottom: 20px; color: #333; font-size: 22px; }
+        .card h3 { margin-bottom: 20px; color: #333; }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
         .form-group input {
@@ -341,18 +362,14 @@ const htmlTemplate = `<!DOCTYPE html>
             border-radius: 8px;
             font-size: 16px;
         }
-        .form-group input:focus { outline: none; border-color: #667eea; }
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 12px 30px;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.2s ease;
         }
-        button:hover { transform: translateY(-2px); }
         .key-result {
             margin-top: 20px;
             padding: 20px;
@@ -360,11 +377,7 @@ const htmlTemplate = `<!DOCTYPE html>
             border-radius: 10px;
             display: none;
         }
-        .key-result.show { display: block; animation: slideDown 0.5s ease; }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .key-result.show { display: block; }
         .key-display {
             font-family: monospace;
             font-size: 20px;
@@ -372,11 +385,9 @@ const htmlTemplate = `<!DOCTYPE html>
             color: #667eea;
             margin: 10px 0;
         }
-        .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
-        th { background: #f8f9fa; font-weight: 600; }
-        tr:hover { background: #f8f9fa; }
+        th { background: #f8f9fa; }
         .status-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -387,9 +398,15 @@ const htmlTemplate = `<!DOCTYPE html>
         .status-active { background: #d4edda; color: #155724; }
         .status-expired { background: #f8d7da; color: #721c24; }
         .status-inactive { background: #fff3cd; color: #856404; }
-        .delete-btn, .reset-device-btn { padding: 6px 12px; font-size: 12px; margin: 0 5px; }
-        .delete-btn { background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; }
-        .reset-device-btn { background: #ffc107; color: #333; border: none; border-radius: 6px; cursor: pointer; }
+        .delete-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -401,32 +418,9 @@ const htmlTemplate = `<!DOCTYPE html>
             padding: 20px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
         .stat-label { color: #666; margin-top: 5px; }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal.show { display: flex; }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            max-width: 400px;
-        }
-        .modal-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
-        .btn-cancel { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; }
         .message {
             padding: 12px;
             border-radius: 8px;
@@ -439,9 +433,7 @@ const htmlTemplate = `<!DOCTYPE html>
         @media (max-width: 768px) {
             .sidebar { width: 80px; padding: 20px 10px; }
             .sidebar h2, .nav-link span:not(.emoji) { display: none; }
-            .nav-link { justify-content: center; }
             .nav-link .emoji { margin-right: 0; font-size: 24px; }
-            .main-content { padding: 15px; }
         }
     </style>
 </head>
@@ -449,11 +441,15 @@ const htmlTemplate = `<!DOCTYPE html>
     <div class="container">
         <div class="sidebar">
             <h2>🏁 Onium Race</h2>
-            <ul class="nav-menu">
-                <li class="nav-item"><div class="nav-link active" data-page="dashboard"><span class="emoji">📊</span><span>Dashboard</span></div></li>
-                <li class="nav-item"><div class="nav-link" data-page="getkey"><span class="emoji">🔑</span><span>Get Key</span></div></li>
-                <li class="nav-item"><div class="nav-link" data-page="reset"><span class="emoji">🔄</span><span>Reset Key</span></div></li>
-            </ul>
+            <div class="nav-link active" data-page="dashboard">
+                <span class="emoji">📊</span><span>Dashboard</span>
+            </div>
+            <div class="nav-link" data-page="getkey">
+                <span class="emoji">🔑</span><span>Get Key</span>
+            </div>
+            <div class="nav-link" data-page="reset">
+                <span class="emoji">🔄</span><span>Reset Key</span>
+            </div>
         </div>
         
         <div class="main-content">
@@ -468,7 +464,8 @@ const htmlTemplate = `<!DOCTYPE html>
                     <div class="table-container">
                         <table id="keysTable">
                             <thead><tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
-                            <tbody id="keysTableBody"><tr><td colspan="5" style="text-align: center;">Loading...</td></tr></tbody>
+                            <tbody id="keysTableBody"><tr><td colspan="5">Loading...</td></tr>
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -478,8 +475,14 @@ const htmlTemplate = `<!DOCTYPE html>
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
                     <form id="generateKeyForm">
-                        <div class="form-group"><label>Masa Aktif (Hari)</label><input type="number" id="activeDays" required min="1" placeholder="Contoh: 30"></div>
-                        <div class="form-group"><label>Jumlah Maksimal Device</label><input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2"></div>
+                        <div class="form-group">
+                            <label>Masa Aktif (Hari)</label>
+                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
+                        </div>
+                        <div class="form-group">
+                            <label>Jumlah Maksimal Device</label>
+                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
+                        </div>
                         <button type="submit">Get Key 🚀</button>
                     </form>
                     <div id="keyResult" class="key-result">
@@ -487,7 +490,7 @@ const htmlTemplate = `<!DOCTYPE html>
                         <div class="key-display" id="generatedKey"></div>
                         <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
                         <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
-                        <p style="color: #667eea; margin-top: 15px;">🎉 Terima kasih sudah membeli VIP kami!</p>
+                        <p>🎉 Terima kasih sudah membeli VIP kami!</p>
                     </div>
                     <div id="generateMessage" class="message"></div>
                 </div>
@@ -497,7 +500,7 @@ const htmlTemplate = `<!DOCTYPE html>
                 <div class="card">
                     <h3>🔄 Reset Key Device</h3>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key (contoh: ONIUM-RACE-ABCDE)" style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="flex:1; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
                         <button id="resetBtn">Reset Device</button>
                     </div>
                     <div id="resetMessage" class="message"></div>
@@ -506,73 +509,44 @@ const htmlTemplate = `<!DOCTYPE html>
         </div>
     </div>
     
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <h3>⚠️ Konfirmasi Reset</h3>
-            <p>Apakah Anda yakin ingin mereset key ini?</p>
-            <p style="font-size: 14px; color: #666;">Semua device yang terdaftar akan dihapus.</p>
-            <div class="modal-buttons">
-                <button id="confirmYes" style="background: #dc3545;">Yes</button>
-                <button id="confirmNo" class="btn-cancel">No</button>
-            </div>
-        </div>
-    </div>
-    
     <script>
-        let currentResetKey = null;
-        
         async function loadKeys() {
             try {
-                const response = await fetch('/api/keys');
-                const keys = await response.json();
-                
+                const res = await fetch('/api/keys');
+                const keys = await res.json();
                 const tbody = document.getElementById('keysTableBody');
-                const totalKeys = Object.keys(keys).length;
-                let activeKeys = 0, expiredKeys = 0;
+                let total = 0, active = 0, expired = 0;
                 
-                if (totalKeys === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Belum ada key</td></tr>';
+                if (Object.keys(keys).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">Belum ada key</td></tr>';
                 } else {
                     tbody.innerHTML = '';
                     for (const [key, data] of Object.entries(keys)) {
-                        const status = data.status;
-                        if (status === 'Aktif') activeKeys++;
-                        if (status === 'Expired') expiredKeys++;
-                        
-                        const statusClass = status === 'Aktif' ? 'status-active' : (status === 'Expired' ? 'status-expired' : 'status-inactive');
-                        
+                        total++;
+                        if (data.status === 'Aktif') active++;
+                        if (data.status === 'Expired') expired++;
+                        const statusClass = data.status === 'Aktif' ? 'status-active' : (data.status === 'Expired' ? 'status-expired' : 'status-inactive');
                         tbody.innerHTML += \`
                             <tr>
                                 <td><strong>\${key}</strong></td>
                                 <td>\${data.usedDevices}/\${data.maxDevices}</td>
                                 <td>\${data.remainingDays}</td>
-                                <td><span class="status-badge \${statusClass}">\${status}</span></td>
+                                <td><span class="status-badge \${statusClass}">\${data.status}</span></td>
                                 <td><button class="delete-btn" onclick="deleteKey('\${key}')">Hapus</button></td>
                             </tr>
                         \`;
                     }
                 }
-                
-                document.getElementById('totalKeys').textContent = totalKeys;
-                document.getElementById('activeKeys').textContent = activeKeys;
-                document.getElementById('expiredKeys').textContent = expiredKeys;
-            } catch (error) {
-                console.error('Error loading keys:', error);
-            }
+                document.getElementById('totalKeys').textContent = total;
+                document.getElementById('activeKeys').textContent = active;
+                document.getElementById('expiredKeys').textContent = expired;
+            } catch(e) { console.error(e); }
         }
         
         async function deleteKey(key) {
-            if (confirm(\`Yakin ingin menghapus key \${key}?\`)) {
-                try {
-                    const response = await fetch(\`/api/delete-key/\${encodeURIComponent(key)}\`, { method: 'DELETE' });
-                    const result = await response.json();
-                    if (result.success) {
-                        showMessage('Key berhasil dihapus', 'success');
-                        loadKeys();
-                    }
-                } catch (error) {
-                    showMessage('Error menghapus key', 'error');
-                }
+            if (confirm(\`Hapus key \${key}?\`)) {
+                await fetch(\`/api/delete-key/\${encodeURIComponent(key)}\`, { method: 'DELETE' });
+                loadKeys();
             }
         }
         
@@ -580,72 +554,45 @@ const htmlTemplate = `<!DOCTYPE html>
             e.preventDefault();
             const activeDays = document.getElementById('activeDays').value;
             const maxDevices = document.getElementById('maxDevices').value;
-            
-            try {
-                const response = await fetch('/api/generate-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ activeDays, maxDevices })
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    document.getElementById('generatedKey').textContent = result.key;
-                    document.getElementById('resultDays').textContent = result.activeDays;
-                    document.getElementById('resultDevices').textContent = result.maxDevices;
-                    document.getElementById('keyResult').classList.add('show');
-                    document.getElementById('generateMessage').classList.remove('show');
-                    loadKeys();
-                } else {
-                    showMessage(result.error, 'error', 'generateMessage');
-                }
-            } catch (error) {
-                showMessage('Error generating key', 'error', 'generateMessage');
+            const res = await fetch('/api/generate-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activeDays, maxDevices })
+            });
+            const result = await res.json();
+            if (result.success) {
+                document.getElementById('generatedKey').textContent = result.key;
+                document.getElementById('resultDays').textContent = result.activeDays;
+                document.getElementById('resultDevices').textContent = result.maxDevices;
+                document.getElementById('keyResult').classList.add('show');
+                loadKeys();
+                setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
+                document.getElementById('activeDays').value = '';
+                document.getElementById('maxDevices').value = '';
+            } else {
+                alert(result.error);
             }
         });
         
-        document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('resetBtn').addEventListener('click', async () => {
             const key = document.getElementById('resetKeyInput').value.trim();
-            if (!key) {
-                showMessage('Masukkan key terlebih dahulu', 'error', 'resetMessage');
-                return;
-            }
-            currentResetKey = key;
-            document.getElementById('confirmModal').classList.add('show');
-        });
-        
-        document.getElementById('confirmYes').addEventListener('click', async () => {
-            document.getElementById('confirmModal').classList.remove('show');
-            try {
-                const response = await fetch('/api/reset-key', {
+            if (!key) { alert('Masukkan key'); return; }
+            if (confirm(\`Reset device untuk key \${key}?\`)) {
+                const res = await fetch('/api/reset-key', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: currentResetKey })
+                    body: JSON.stringify({ key })
                 });
-                const result = await response.json();
+                const result = await res.json();
                 if (result.success) {
-                    showMessage('Key berhasil direset! Device telah dihapus.', 'success', 'resetMessage');
+                    alert('Key berhasil direset!');
                     document.getElementById('resetKeyInput').value = '';
                     loadKeys();
                 } else {
-                    showMessage(result.error, 'error', 'resetMessage');
+                    alert(result.error);
                 }
-            } catch (error) {
-                showMessage('Error resetting key', 'error', 'resetMessage');
             }
         });
-        
-        document.getElementById('confirmNo').addEventListener('click', () => {
-            document.getElementById('confirmModal').classList.remove('show');
-            currentResetKey = null;
-        });
-        
-        function showMessage(message, type, elementId = 'generateMessage') {
-            const msgDiv = document.getElementById(elementId);
-            msgDiv.textContent = message;
-            msgDiv.className = \`message \${type} show\`;
-            setTimeout(() => msgDiv.classList.remove('show'), 3000);
-        }
         
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
@@ -664,14 +611,15 @@ const htmlTemplate = `<!DOCTYPE html>
         }, 10000);
     </script>
 </body>
-</html>`;
-
-app.get('/', (req, res) => {
-    res.send(htmlTemplate);
+</html>`);
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
-
+// ========== EKSPOR UNTUK VERCEL ==========
 module.exports = app;
+
+// Untuk running lokal
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
+}
