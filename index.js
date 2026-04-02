@@ -220,14 +220,14 @@ app.get('/', (req, res) => {
     
     <!-- FAVICON MENGGUNAKAN LINK GAMBAR EKSTERNAL -->
     <!-- GANTI URL DI BAWAH INI DENGAN LINK GAMBAR ANDA -->
-    <link rel="icon" type="image/png" href="https://chatgpt.com/backend-api/estuary/content?id=file_00000000fd48720baeace9d1d2f357a6&ts=493094&p=fs&cid=1&sig=dea2f1ec35c1b48726e64dfc4343c4934306f0c95e4cd61d45b532cd2efeb388&v=0">
+    <link rel="icon" type="image/png" href="https://files.catbox.moe/ly1obb.png">
     <!-- Atau pakai format ICO -->
     <!-- <link rel="icon" type="image/x-icon" href="https://example.com/favicon.ico"> -->
     <!-- Atau pakai JPG/JPEG -->
-    <!-- <link rel="icon" type="image/jpeg" href="https://chatgpt.com/backend-api/estuary/content?id=file_00000000fd48720baeace9d1d2f357a6&ts=493094&p=fs&cid=1&sig=dea2f1ec35c1b48726e64dfc4343c4934306f0c95e4cd61d45b532cd2efeb388&v=0"> -->
+    <!-- <link rel="icon" type="image/jpeg" href="https://files.catbox.moe/ly1obb.png"> -->
     
     <!-- JIKA GAMBAR TIDAK MUNCUL, COBA TAMBAHKAN INI JUGA -->
-    <link rel="shortcut icon" type="image/png" href="https://chatgpt.com/backend-api/estuary/content?id=file_00000000fd48720baeace9d1d2f357a6&ts=493094&p=fs&cid=1&sig=dea2f1ec35c1b48726e64dfc4343c4934306f0c95e4cd61d45b532cd2efeb388&v=0">
+    <link rel="shortcut icon" type="image/png" href="https://files.catbox.moe/ly1obb.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
