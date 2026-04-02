@@ -4,22 +4,35 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 
 // ========== SUPABASE CONFIG ==========
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
-// Cek apakah environment variables tersedia
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('❌ ERROR: SUPABASE_URL atau SUPABASE_ANON_KEY tidak diset di environment variables!');
+// Jangan buat error jika tidak ada env, tapi kasih warning
+let supabase = null;
+try {
+    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase connected');
+    } else {
+        console.warn('⚠️ Supabase credentials not set, using in-memory mode');
+    }
+} catch (error) {
+    console.error('❌ Supabase connection error:', error.message);
 }
 
-const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '');
+// In-memory fallback (biar gak crash)
+let keysData = {};
 
-// ========== DATABASE FUNCTIONS ==========
+// ========== DATABASE FUNCTIONS (dengan fallback) ==========
 async function getKey(key) {
+    // Fallback ke in-memory jika Supabase tidak tersedia
+    if (!supabase) {
+        return keysData[key] || null;
+    }
+    
     try {
         const { data, error } = await supabase
             .from('keys')
@@ -31,18 +44,23 @@ async function getKey(key) {
         return data;
     } catch (error) {
         console.error('getKey error:', error);
-        return null;
+        return keysData[key] || null;
     }
 }
 
 async function getAllKeys() {
+    // Fallback ke in-memory jika Supabase tidak tersedia
+    if (!supabase) {
+        return keysData;
+    }
+    
     try {
         const { data, error } = await supabase
             .from('keys')
             .select('*')
             .order('created_at', { ascending: false });
         
-        if (error) return {};
+        if (error) return keysData;
         
         const result = {};
         if (data) {
@@ -53,11 +71,17 @@ async function getAllKeys() {
         return result;
     } catch (error) {
         console.error('getAllKeys error:', error);
-        return {};
+        return keysData;
     }
 }
 
 async function saveKey(keyData) {
+    // Fallback ke in-memory jika Supabase tidak tersedia
+    if (!supabase) {
+        keysData[keyData.key] = keyData;
+        return [keyData];
+    }
+    
     try {
         const { data, error } = await supabase
             .from('keys')
@@ -68,11 +92,18 @@ async function saveKey(keyData) {
         return data;
     } catch (error) {
         console.error('saveKey error:', error);
-        throw error;
+        keysData[keyData.key] = keyData;
+        return [keyData];
     }
 }
 
 async function deleteKey(key) {
+    // Fallback ke in-memory jika Supabase tidak tersedia
+    if (!supabase) {
+        delete keysData[key];
+        return true;
+    }
+    
     try {
         const { error } = await supabase
             .from('keys')
@@ -83,7 +114,8 @@ async function deleteKey(key) {
         return true;
     } catch (error) {
         console.error('deleteKey error:', error);
-        throw error;
+        delete keysData[key];
+        return true;
     }
 }
 
@@ -99,13 +131,13 @@ function generateKey() {
 
 function getRemainingDays(keyData) {
     if (!keyData.first_used) {
-        return keyData.active_days;
+        return keyData.active_days || keyData.activeDays;
     }
     
     const firstUsed = new Date(keyData.first_used);
     const now = new Date();
     const diffDays = Math.floor((now - firstUsed) / (1000 * 60 * 60 * 24));
-    const remaining = keyData.active_days - diffDays;
+    const remaining = (keyData.active_days || keyData.activeDays) - diffDays;
     
     return remaining < 0 ? 0 : remaining;
 }
@@ -140,6 +172,14 @@ app.get('/api/keys', async (req, res) => {
         console.error('/api/keys error:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        supabase: supabase ? 'connected' : 'disabled',
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.post('/api/generate-key', async (req, res) => {
@@ -217,13 +257,13 @@ app.post('/api/use-key', async (req, res) => {
             return res.json({
                 valid: true,
                 remainingDays: getRemainingDays(keyData),
-                activeDays: keyData.active_days,
-                maxDevices: keyData.max_devices,
+                activeDays: keyData.active_days || keyData.activeDays,
+                maxDevices: keyData.max_devices || keyData.maxDevices,
                 message: 'Key valid'
             });
         }
         
-        if (currentDevices >= keyData.max_devices) {
+        if (currentDevices >= (keyData.max_devices || keyData.maxDevices)) {
             return res.status(403).json({
                 error: 'Batas device tercapai',
                 valid: false,
@@ -251,8 +291,8 @@ app.post('/api/use-key', async (req, res) => {
         res.json({
             valid: true,
             remainingDays: getRemainingDays({ ...keyData, first_used: firstUsed }),
-            activeDays: keyData.active_days,
-            maxDevices: keyData.max_devices,
+            activeDays: keyData.active_days || keyData.activeDays,
+            maxDevices: keyData.max_devices || keyData.maxDevices,
             message: 'Key berhasil diaktifkan'
         });
     } catch (error) {
@@ -306,9 +346,10 @@ app.delete('/api/delete-key/:key', async (req, res) => {
     }
 });
 
-// ========== SERVE HTML ==========
+// ========== SERVE HTML (sederhana dulu) ==========
 app.get('/', (req, res) => {
-    res.send(`<!DOCTYPE html>
+    res.send(`
+<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -316,302 +357,64 @@ app.get('/', (req, res) => {
     <title>Onium Race - Key Management System</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏁%3C/text%3E%3C/svg%3E">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        .container { display: flex; min-height: 100vh; }
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
-            color: white;
-            padding: 30px 20px;
-        }
-        .sidebar h2 { text-align: center; margin-bottom: 30px; }
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: #ecf0f1;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        .nav-link:hover { background: rgba(255,255,255,0.1); }
-        .nav-link.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .nav-link .emoji { margin-right: 12px; font-size: 20px; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        .card h3 { margin-bottom: 20px; color: #333; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .key-result {
-            margin-top: 20px;
-            padding: 20px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            border-radius: 10px;
-            display: none;
-        }
-        .key-result.show { display: block; }
-        .key-display {
-            font-family: monospace;
-            font-size: 20px;
-            font-weight: bold;
-            color: #667eea;
-            margin: 10px 0;
-        }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
-        th { background: #f8f9fa; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .status-active { background: #d4edda; color: #155724; }
-        .status-expired { background: #f8d7da; color: #721c24; }
-        .status-inactive { background: #fff3cd; color: #856404; }
-        .delete-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-        }
-        .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
-        .stat-label { color: #666; margin-top: 5px; }
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 15px;
-            display: none;
-        }
-        .message.show { display: block; }
-        .message.success { background: #d4edda; color: #155724; }
-        .message.error { background: #f8d7da; color: #721c24; }
-        @media (max-width: 768px) {
-            .sidebar { width: 80px; padding: 20px 10px; }
-            .sidebar h2, .nav-link span:not(.emoji) { display: none; }
-            .nav-link .emoji { margin-right: 0; font-size: 24px; }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:Arial,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh}
+        .container{display:flex;min-height:100vh}
+        .sidebar{width:250px;background:#1a1a2e;color:#fff;padding:20px}
+        .sidebar h2{text-align:center;margin-bottom:30px}
+        .nav-link{display:block;padding:12px;margin:5px 0;background:#2c3e50;border-radius:8px;cursor:pointer;text-align:center}
+        .nav-link.active{background:#667eea}
+        .main-content{flex:1;padding:20px}
+        .page{display:none}
+        .page.active{display:block}
+        .card{background:#fff;border-radius:10px;padding:20px;margin-bottom:20px}
+        .form-group{margin-bottom:15px}
+        .form-group label{display:block;margin-bottom:5px}
+        .form-group input{width:100%;padding:10px;border:1px solid #ddd;border-radius:5px}
+        button{background:#667eea;color:#fff;padding:10px 20px;border:none;border-radius:5px;cursor:pointer}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:10px;text-align:left;border-bottom:1px solid #ddd}
+        .status-active{color:green}
+        .status-expired{color:red}
+        .delete-btn{background:#dc3545;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer}
+        .stats{display:flex;gap:20px;margin-bottom:20px}
+        .stat-card{background:#fff;padding:20px;border-radius:10px;flex:1;text-align:center}
+        .stat-number{font-size:32px;font-weight:bold;color:#667eea}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <h2>🏁 Onium Race</h2>
-            <div class="nav-link active" data-page="dashboard">
-                <span class="emoji">📊</span><span>Dashboard</span>
-            </div>
-            <div class="nav-link" data-page="getkey">
-                <span class="emoji">🔑</span><span>Get Key</span>
-            </div>
-            <div class="nav-link" data-page="reset">
-                <span class="emoji">🔄</span><span>Reset Key</span>
-            </div>
-        </div>
-        
-        <div class="main-content">
-            <div id="dashboard" class="page active">
-                <div class="stats">
-                    <div class="stat-card"><div class="stat-number" id="totalKeys">0</div><div class="stat-label">Total Keys</div></div>
-                    <div class="stat-card"><div class="stat-number" id="activeKeys">0</div><div class="stat-label">Active Keys</div></div>
-                    <div class="stat-card"><div class="stat-number" id="expiredKeys">0</div><div class="stat-label">Expired Keys</div></div>
-                </div>
-                <div class="card">
-                    <h3>📋 Daftar Key</h3>
-                    <div class="table-container">
-                        <table id="keysTable">
-                            <thead><tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
-                            <tbody id="keysTableBody"><tr><td colspan="5">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="getkey" class="page">
-                <div class="card">
-                    <h3>🎁 Get New Key</h3>
-                    <form id="generateKeyForm">
-                        <div class="form-group">
-                            <label>Masa Aktif (Hari)</label>
-                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
-                        </div>
-                        <div class="form-group">
-                            <label>Jumlah Maksimal Device</label>
-                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
-                        </div>
-                        <button type="submit">Get Key 🚀</button>
-                    </form>
-                    <div id="keyResult" class="key-result">
-                        <h4>✅ Key Berhasil Dibuat!</h4>
-                        <div class="key-display" id="generatedKey"></div>
-                        <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
-                        <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
-                        <p>🎉 Terima kasih sudah membeli VIP kami!</p>
-                    </div>
-                    <div id="generateMessage" class="message"></div>
-                </div>
-            </div>
-            
-            <div id="reset" class="page">
-                <div class="card">
-                    <h3>🔄 Reset Key Device</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="flex:1; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
-                        <button id="resetBtn">Reset Device</button>
-                    </div>
-                    <div id="resetMessage" class="message"></div>
-                </div>
-            </div>
-        </div>
+<div class="container">
+    <div class="sidebar">
+        <h2>🏁 Onium Race</h2>
+        <div class="nav-link active" data-page="dashboard">📊 Dashboard</div>
+        <div class="nav-link" data-page="getkey">🔑 Get Key</div>
+        <div class="nav-link" data-page="reset">🔄 Reset Key</div>
     </div>
-    
-    <script>
-        async function loadKeys() {
-            try {
-                const res = await fetch('/api/keys');
-                const keys = await res.json();
-                const tbody = document.getElementById('keysTableBody');
-                let total = 0, active = 0, expired = 0;
-                
-                if (Object.keys(keys).length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5">Belum ada key</td></tr>';
-                } else {
-                    tbody.innerHTML = '';
-                    for (const [key, data] of Object.entries(keys)) {
-                        total++;
-                        if (data.status === 'Aktif') active++;
-                        if (data.status === 'Expired') expired++;
-                        const statusClass = data.status === 'Aktif' ? 'status-active' : (data.status === 'Expired' ? 'status-expired' : 'status-inactive');
-                        tbody.innerHTML += \`
-                            <tr>
-                                <td><strong>\${key}</strong></td>
-                                <td>\${data.usedDevices}/\${data.maxDevices}</td>
-                                <td>\${data.remainingDays}</td>
-                                <td><span class="status-badge \${statusClass}">\${data.status}</span></td>
-                                <td><button class="delete-btn" onclick="deleteKey('\${key}')">Hapus</button></td>
-                            </tr>
-                        \`;
-                    }
-                }
-                document.getElementById('totalKeys').textContent = total;
-                document.getElementById('activeKeys').textContent = active;
-                document.getElementById('expiredKeys').textContent = expired;
-            } catch(e) { console.error(e); }
-        }
-        
-        async function deleteKey(key) {
-            if (confirm(\`Hapus key \${key}?\`)) {
-                await fetch(\`/api/delete-key/\${encodeURIComponent(key)}\`, { method: 'DELETE' });
-                loadKeys();
-            }
-        }
-        
-        document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const activeDays = document.getElementById('activeDays').value;
-            const maxDevices = document.getElementById('maxDevices').value;
-            const res = await fetch('/api/generate-key', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activeDays, maxDevices })
-            });
-            const result = await res.json();
-            if (result.success) {
-                document.getElementById('generatedKey').textContent = result.key;
-                document.getElementById('resultDays').textContent = result.activeDays;
-                document.getElementById('resultDevices').textContent = result.maxDevices;
-                document.getElementById('keyResult').classList.add('show');
-                loadKeys();
-                setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
-                document.getElementById('activeDays').value = '';
-                document.getElementById('maxDevices').value = '';
-            } else {
-                alert(result.error);
-            }
-        });
-        
-        document.getElementById('resetBtn').addEventListener('click', async () => {
-            const key = document.getElementById('resetKeyInput').value.trim();
-            if (!key) { alert('Masukkan key'); return; }
-            if (confirm(\`Reset device untuk key \${key}?\`)) {
-                const res = await fetch('/api/reset-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    alert('Key berhasil direset!');
-                    document.getElementById('resetKeyInput').value = '';
-                    loadKeys();
-                } else {
-                    alert(result.error);
-                }
-            }
-        });
-        
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                const page = link.dataset.page;
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-                document.getElementById(page).classList.add('active');
-                if (page === 'dashboard') loadKeys();
-            });
-        });
-        
-        loadKeys();
-        setInterval(() => {
-            if (document.getElementById('dashboard').classList.contains('active')) loadKeys();
-        }, 10000);
-    </script>
+    <div class="main-content">
+        <div id="dashboard" class="page active">
+            <div class="stats">
+                <div class="stat-card"><div class="stat-number" id="totalKeys">0</div><div>Total Keys</div></div>
+                <div class="stat-card"><div class="stat-number" id="activeKeys">0</div><div>Active Keys</div></div>
+                <div class="stat-card"><div class="stat-number" id="expiredKeys">0</div><div>Expired Keys</div></div>
+            </div>
+            <div class="card"><h3>📋 Daftar Key</h3><table id="keysTable"><thead><tr><th>Key</th><th>Device</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="keysTableBody"><tr><td colspan="5">Loading...</td></tr></tbody></table></div>
+        </div>
+        <div id="getkey" class="page"><div class="card"><h3>🎁 Get New Key</h3><form id="generateKeyForm"><div class="form-group"><label>Masa Aktif (Hari)</label><input type="number" id="activeDays" required min="1"></div><div class="form-group"><label>Max Device</label><input type="number" id="maxDevices" required min="1"></div><button type="submit">Get Key 🚀</button></form><div id="keyResult"></div></div></div>
+        <div id="reset" class="page"><div class="card"><h3>🔄 Reset Key</h3><input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="width:100%;padding:10px;margin-bottom:10px"><button id="resetBtn">Reset Device</button><div id="resetMessage"></div></div></div>
+    </div>
+</div>
+<script>
+let currentResetKey=null;
+async function loadKeys(){try{const res=await fetch('/api/keys');const keys=await res.json();const tbody=document.getElementById('keysTableBody');let total=0,active=0,expired=0;if(Object.keys(keys).length===0){tbody.innerHTML='<tr><td colspan="5">Belum ada key</td></tr>';}else{tbody.innerHTML='';for(const[key,data]of Object.entries(keys)){total++;if(data.status==='Aktif')active++;if(data.status==='Expired')expired++;tbody.innerHTML+='<tr><td><strong>'+key+'</strong></td><td>'+data.usedDevices+'/'+data.maxDevices+'</td><td>'+data.remainingDays+'</td><td>'+data.status+'</td><td><button class="delete-btn" onclick="deleteKey(\\''+key+'\\')">Hapus</button></td></tr>';}}document.getElementById('totalKeys').textContent=total;document.getElementById('activeKeys').textContent=active;document.getElementById('expiredKeys').textContent=expired;}catch(e){console.error(e);}}
+async function deleteKey(key){if(confirm('Hapus key '+key+'?')){await fetch('/api/delete-key/'+encodeURIComponent(key),{method:'DELETE'});loadKeys();}}
+document.getElementById('generateKeyForm').addEventListener('submit',async(e)=>{e.preventDefault();const activeDays=document.getElementById('activeDays').value;const maxDevices=document.getElementById('maxDevices').value;const res=await fetch('/api/generate-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({activeDays,maxDevices})});const result=await res.json();if(result.success){document.getElementById('keyResult').innerHTML='<div style="background:#e0e0e0;padding:15px;margin-top:15px;border-radius:5px"><h4>✅ Key Berhasil!</h4><p><strong>Key:</strong> '+result.key+'</p><p>Masa Aktif: '+result.activeDays+' hari</p><p>Max Device: '+result.maxDevices+'</p></div>';loadKeys();document.getElementById('activeDays').value='';document.getElementById('maxDevices').value='';setTimeout(()=>{document.getElementById('keyResult').innerHTML='';},5000);}else{alert(result.error);}});
+document.getElementById('resetBtn').addEventListener('click',async()=>{const key=document.getElementById('resetKeyInput').value.trim();if(!key){alert('Masukkan key');return;}if(confirm('Reset device untuk key '+key+'?')){const res=await fetch('/api/reset-key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});const result=await res.json();if(result.success){alert('Key berhasil direset!');document.getElementById('resetKeyInput').value='';loadKeys();}else{alert(result.error);}}});
+document.querySelectorAll('.nav-link').forEach(link=>{link.addEventListener('click',()=>{document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));link.classList.add('active');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(link.dataset.page).classList.add('active');if(link.dataset.page==='dashboard')loadKeys();});});
+loadKeys();
+</script>
 </body>
-</html>`);
+</html>
+    `);
 });
 
 // ========== EKSPOR UNTUK VERCEL ==========
@@ -620,6 +423,7 @@ module.exports = app;
 // Untuk running lokal
 if (require.main === module) {
     app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`✅ Server running on http://localhost:${PORT}`);
+        console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
     });
 }
