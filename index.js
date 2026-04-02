@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Onium Race - Key Management System</title>
-    <link rel="icon" href="https://files.catbox.moe/bjwzg5.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://files.catbox.moe/bjwzg5.png">
+<link rel="shortcut icon" href="https://files.catbox.moe/bjwzg5.png">
     <style>
         * {
             margin: 0;
