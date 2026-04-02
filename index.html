@@ -22,7 +22,6 @@
             min-height: 100vh;
         }
         
-        /* Sidebar */
         .sidebar {
             width: 280px;
             background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
@@ -70,7 +69,6 @@
             font-size: 20px;
         }
         
-        /* Main Content */
         .main-content {
             flex: 1;
             padding: 30px;
@@ -327,6 +325,20 @@
             color: #721c24;
         }
         
+        /* API Status Indicator */
+        .api-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #0f0;
+            font-family: monospace;
+            z-index: 1000;
+        }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 80px;
@@ -379,7 +391,6 @@
         </div>
         
         <div class="main-content">
-            <!-- Dashboard Page -->
             <div id="dashboard" class="page active">
                 <div class="stats">
                     <div class="stat-card">
@@ -401,23 +412,14 @@
                     <div class="table-container">
                         <table id="keysTable">
                             <thead>
-                                <tr>
-                                    <th>Key</th>
-                                    <th>Device Used</th>
-                                    <th>Sisa Hari</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
+                                <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
                             </thead>
-                            <tbody id="keysTableBody">
-                                <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
-                            </tbody>
+                            <tbody id="keysTableBody"><tr><td colspan="5">Loading...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
             </div>
             
-            <!-- Get Key Page -->
             <div id="getkey" class="page">
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
@@ -440,17 +442,15 @@
                         <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
                         <p style="color: #667eea; margin-top: 15px;">🎉 Terima kasih sudah membeli VIP kami!</p>
                     </div>
-                    
                     <div id="generateMessage" class="message"></div>
                 </div>
             </div>
             
-            <!-- Reset Key Page -->
             <div id="reset" class="page">
                 <div class="card">
                     <h3>🔄 Reset Key Device</h3>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key (contoh: ONIUM-RACE-ABCDE)" style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="flex:1; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
                         <button id="resetBtn">Reset Device</button>
                     </div>
                     <div id="resetMessage" class="message"></div>
@@ -459,44 +459,34 @@
         </div>
     </div>
     
-    <!-- Confirmation Modal -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
             <h3>⚠️ Konfirmasi Reset</h3>
             <p>Apakah Anda yakin ingin mereset key ini?</p>
-            <p style="font-size: 14px; color: #666;">Semua device yang terdaftar akan dihapus.</p>
             <div class="modal-buttons">
-                <button id="confirmYes" style="background: #dc3545;">Yes</button>
+                <button id="confirmYes" style="background:#dc3545;">Yes</button>
                 <button id="confirmNo" class="btn-cancel">No</button>
             </div>
         </div>
     </div>
     
+    <div class="api-status" id="apiStatus">🌐 API Ready</div>
+    
     <script>
-        // Data storage menggunakan localStorage
+        // ========== DATA STORAGE ==========
         let keysData = {};
         
-        // Load data dari localStorage
         function loadData() {
             const saved = localStorage.getItem('onium_race_keys');
             if (saved) {
                 keysData = JSON.parse(saved);
             } else {
                 keysData = {};
-                // Tambah contoh data untuk demo
                 const exampleKey = 'ONIUM-RACE-DEMO1';
                 keysData[exampleKey] = {
-                    key: exampleKey,
-                    activeDays: 30,
-                    maxDevices: 2,
+                    key: exampleKey, activeDays: 30, maxDevices: 2,
                     firstUsed: new Date().toISOString(),
-                    devices: {
-                        'device123': {
-                            deviceId: 'device123',
-                            deviceName: 'Demo Device',
-                            usedAt: new Date().toISOString()
-                        }
-                    },
+                    devices: { 'device123': { deviceId: 'device123', deviceName: 'Demo Device', usedAt: new Date().toISOString() } },
                     createdAt: new Date().toISOString()
                 };
                 saveData();
@@ -504,59 +494,37 @@
             renderDashboard();
         }
         
-        // Save data ke localStorage
         function saveData() {
             localStorage.setItem('onium_race_keys', JSON.stringify(keysData));
             renderDashboard();
         }
         
-        // Generate random key
         function generateKey() {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let result = '';
-            for (let i = 0; i < 5; i++) {
-                result += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
+            for (let i = 0; i < 5; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
             return `ONIUM-RACE-${result}`;
         }
         
-        // Hitung sisa hari
         function getRemainingDays(keyData) {
-            if (!keyData.firstUsed) {
-                return keyData.activeDays;
-            }
-            
-            const firstUsed = new Date(keyData.firstUsed);
-            const now = new Date();
-            const diffTime = now - firstUsed;
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            if (!keyData.firstUsed) return keyData.activeDays;
+            const diffDays = Math.floor((new Date() - new Date(keyData.firstUsed)) / (1000 * 60 * 60 * 24));
             const remaining = keyData.activeDays - diffDays;
-            
             return remaining < 0 ? 0 : remaining;
         }
         
-        // Dapatkan status key
         function getKeyStatus(keyData) {
-            if (!keyData.firstUsed) {
-                return 'Belum Aktif';
-            }
-            
-            const remaining = getRemainingDays(keyData);
-            if (remaining <= 0) {
-                return 'Expired';
-            }
-            return 'Aktif';
+            if (!keyData.firstUsed) return 'Belum Aktif';
+            return getRemainingDays(keyData) <= 0 ? 'Expired' : 'Aktif';
         }
         
-        // Render dashboard
         function renderDashboard() {
             const tbody = document.getElementById('keysTableBody');
             const totalKeys = Object.keys(keysData).length;
-            let activeKeys = 0;
-            let expiredKeys = 0;
+            let activeKeys = 0, expiredKeys = 0;
             
             if (totalKeys === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Belum ada key</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5">Belum ada key</td></tr>';
             } else {
                 tbody.innerHTML = '';
                 for (const [key, data] of Object.entries(keysData)) {
@@ -564,13 +532,10 @@
                     if (status === 'Aktif') activeKeys++;
                     if (status === 'Expired') expiredKeys++;
                     
-                    const statusClass = status === 'Aktif' ? 'status-active' : 
-                                      (status === 'Expired' ? 'status-expired' : 'status-inactive');
-                    
+                    const statusClass = status === 'Aktif' ? 'status-active' : (status === 'Expired' ? 'status-expired' : 'status-inactive');
                     const usedDevices = data.devices ? Object.keys(data.devices).length : 0;
                     
-                    const row = tbody.insertRow();
-                    row.innerHTML = `
+                    tbody.innerHTML += `<tr>
                         <td><strong>${key}</strong></td>
                         <td>${usedDevices}/${data.maxDevices}</td>
                         <td>${getRemainingDays(data)}</td>
@@ -579,18 +544,16 @@
                             <button class="reset-device-btn" onclick="resetDevice('${key}')">Reset Device</button>
                             <button class="delete-btn" onclick="deleteKey('${key}')">Hapus</button>
                         </td>
-                    `;
+                    </tr>`;
                 }
             }
-            
             document.getElementById('totalKeys').textContent = totalKeys;
             document.getElementById('activeKeys').textContent = activeKeys;
             document.getElementById('expiredKeys').textContent = expiredKeys;
         }
         
-        // Reset device untuk key tertentu
         function resetDevice(key) {
-            if (confirm(`Reset semua device untuk key ${key}?`)) {
+            if (confirm(`Reset device untuk key ${key}?`)) {
                 if (keysData[key]) {
                     keysData[key].devices = {};
                     keysData[key].firstUsed = null;
@@ -600,141 +563,120 @@
             }
         }
         
-        // Delete key
         function deleteKey(key) {
-            if (confirm(`Yakin ingin menghapus key ${key}?`)) {
+            if (confirm(`Hapus key ${key}?`)) {
                 delete keysData[key];
                 saveData();
                 showMessage('Key berhasil dihapus', 'success');
             }
         }
         
-        // Generate new key
         document.getElementById('generateKeyForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            
             const activeDays = parseInt(document.getElementById('activeDays').value);
             const maxDevices = parseInt(document.getElementById('maxDevices').value);
             
             if (activeDays <= 0 || maxDevices <= 0) {
-                showMessage('Harap isi dengan nilai yang valid', 'error', 'generateMessage');
+                showMessage('Nilai tidak valid', 'error', 'generateMessage');
                 return;
             }
             
             let newKey = generateKey();
-            
-            // Cegah duplikat
-            while (keysData[newKey]) {
-                newKey = generateKey();
-            }
+            while (keysData[newKey]) newKey = generateKey();
             
             keysData[newKey] = {
-                key: newKey,
-                activeDays: activeDays,
-                maxDevices: maxDevices,
-                firstUsed: null,
-                devices: {},
-                createdAt: new Date().toISOString()
+                key: newKey, activeDays, maxDevices, firstUsed: null, devices: {}, createdAt: new Date().toISOString()
             };
-            
             saveData();
             
-            // Tampilkan hasil
             document.getElementById('generatedKey').textContent = newKey;
             document.getElementById('resultDays').textContent = activeDays;
             document.getElementById('resultDevices').textContent = maxDevices;
             document.getElementById('keyResult').classList.add('show');
-            document.getElementById('generateMessage').classList.remove('show');
-            
-            // Reset form
             document.getElementById('activeDays').value = '';
             document.getElementById('maxDevices').value = '';
-            
-            setTimeout(() => {
-                document.getElementById('keyResult').classList.remove('show');
-            }, 5000);
+            setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
         });
         
-        // Reset key (untuk menu reset)
         document.getElementById('resetBtn').addEventListener('click', () => {
             const key = document.getElementById('resetKeyInput').value.trim();
-            if (!key) {
-                showMessage('Masukkan key terlebih dahulu', 'error', 'resetMessage');
-                return;
-            }
-            
-            if (!keysData[key]) {
-                showMessage('Key tidak ditemukan', 'error', 'resetMessage');
-                return;
-            }
-            
-            if (confirm(`Reset semua device untuk key ${key}?`)) {
+            if (!key) { showMessage('Masukkan key', 'error', 'resetMessage'); return; }
+            if (!keysData[key]) { showMessage('Key tidak ditemukan', 'error', 'resetMessage'); return; }
+            if (confirm(`Reset device untuk key ${key}?`)) {
                 keysData[key].devices = {};
                 keysData[key].firstUsed = null;
                 saveData();
-                showMessage('Key berhasil direset! Device telah dihapus.', 'success', 'resetMessage');
+                showMessage('Key berhasil direset!', 'success', 'resetMessage');
                 document.getElementById('resetKeyInput').value = '';
             }
         });
         
-        function showMessage(message, type, elementId = 'generateMessage') {
+        function showMessage(message, type, elementId) {
             const msgDiv = document.getElementById(elementId);
             msgDiv.textContent = message;
             msgDiv.className = `message ${type} show`;
-            setTimeout(() => {
-                msgDiv.classList.remove('show');
-            }, 3000);
+            setTimeout(() => msgDiv.classList.remove('show'), 3000);
         }
         
-        // Navigasi
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 const page = link.dataset.page;
-                
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
-                
                 document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
                 document.getElementById(page).classList.add('active');
-                
-                if (page === 'dashboard') {
-                    renderDashboard();
-                }
+                if (page === 'dashboard') renderDashboard();
             });
         });
         
-        // API untuk script Lua (disediakan secara global)
-        window.OniumAPI = {
-            validateKey: function(key, deviceId, deviceName) {
-                if (!keysData[key]) {
-                    return { valid: false, error: 'Key tidak valid' };
+        // ========== API ENDPOINT HANDLER ==========
+        // Ini adalah bagian PENTING untuk koneksi ke script Lua!
+        // Website ini akan menangani request POST dari script Lua
+        
+        function handleAPIRequest(requestData) {
+            const { action, key, deviceId, deviceName, activeDays, maxDevices } = requestData;
+            
+            // CORS headers untuk response
+            const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+            
+            // VALIDATE/USE KEY
+            if (action === 'validate' || action === 'use') {
+                if (!key || !deviceId) {
+                    return { success: false, error: 'Key dan Device ID diperlukan' };
                 }
                 
                 const keyData = keysData[key];
+                if (!keyData) {
+                    return { success: false, valid: false, error: 'Key tidak valid' };
+                }
                 
                 // Cek expired
                 if (keyData.firstUsed) {
                     const remaining = getRemainingDays(keyData);
                     if (remaining <= 0) {
-                        return { valid: false, error: 'Key sudah expired' };
+                        return { success: false, valid: false, error: 'Key sudah expired' };
                     }
                 }
                 
                 const currentDevices = Object.keys(keyData.devices).length;
                 
-                // Cek device sudah terdaftar
+                // Device sudah terdaftar
                 if (keyData.devices[deviceId]) {
                     return {
-                        valid: true,
+                        success: true, valid: true,
                         remainingDays: getRemainingDays(keyData),
                         activeDays: keyData.activeDays,
-                        maxDevices: keyData.maxDevices
+                        maxDevices: keyData.maxDevices,
+                        message: 'Key valid'
                     };
                 }
                 
                 // Cek slot device
                 if (currentDevices >= keyData.maxDevices) {
-                    return { valid: false, error: 'Batas device tercapai', needReset: true };
+                    return {
+                        success: false, valid: false, needReset: true,
+                        error: 'Batas device tercapai, perlu reset dari website'
+                    };
                 }
                 
                 // First time use
@@ -752,31 +694,154 @@
                 saveData();
                 
                 return {
-                    valid: true,
+                    success: true, valid: true,
                     remainingDays: getRemainingDays(keyData),
                     activeDays: keyData.activeDays,
-                    maxDevices: keyData.maxDevices
+                    maxDevices: keyData.maxDevices,
+                    message: 'Key berhasil diaktifkan'
                 };
+            }
+            
+            // GET ALL KEYS
+            if (action === 'list') {
+                const allKeys = {};
+                for (const [k, data] of Object.entries(keysData)) {
+                    allKeys[k] = {
+                        key: k,
+                        activeDays: data.activeDays,
+                        maxDevices: data.maxDevices,
+                        remainingDays: getRemainingDays(data),
+                        status: getKeyStatus(data),
+                        usedDevices: data.devices ? Object.keys(data.devices).length : 0
+                    };
+                }
+                return { success: true, keys: allKeys };
+            }
+            
+            // GENERATE KEY
+            if (action === 'generate') {
+                if (!activeDays || !maxDevices) {
+                    return { success: false, error: 'Masukkan hari dan max device' };
+                }
+                
+                let newKey = generateKey();
+                while (keysData[newKey]) newKey = generateKey();
+                
+                keysData[newKey] = {
+                    key: newKey,
+                    activeDays: parseInt(activeDays),
+                    maxDevices: parseInt(maxDevices),
+                    firstUsed: null,
+                    devices: {},
+                    createdAt: new Date().toISOString()
+                };
+                saveData();
+                
+                return {
+                    success: true,
+                    key: newKey,
+                    activeDays: parseInt(activeDays),
+                    maxDevices: parseInt(maxDevices)
+                };
+            }
+            
+            // RESET KEY
+            if (action === 'reset') {
+                if (!key) return { success: false, error: 'Key diperlukan' };
+                if (!keysData[key]) return { success: false, error: 'Key tidak ditemukan' };
+                
+                keysData[key].devices = {};
+                keysData[key].firstUsed = null;
+                saveData();
+                
+                return { success: true, message: 'Key berhasil direset' };
+            }
+            
+            return { success: false, error: 'Unknown action' };
+        }
+        
+        // ========== LISTENER UNTUK POST MESSAGE (UNTUK IFRAME ATAU WEB VIEW) ==========
+        window.addEventListener('message', function(event) {
+            // Terima pesan dari iframe atau web view
+            const data = event.data;
+            if (data && data.type === 'ONIUM_API_REQUEST') {
+                const result = handleAPIRequest(data.payload);
+                // Kirim balik ke pengirim
+                if (event.source) {
+                    event.source.postMessage({
+                        type: 'ONIUM_API_RESPONSE',
+                        requestId: data.requestId,
+                        result: result
+                    }, '*');
+                }
+            }
+        });
+        
+        // ========== EXPOSE API KE WINDOW (UNTUK AKSES LANGSUNG DARI CONSOLE/EXECUTOR) ==========
+        window.OniumAPI = {
+            validateKey: function(key, deviceId, deviceName) {
+                const result = handleAPIRequest({ action: 'validate', key, deviceId, deviceName });
+                return result;
             },
             
-            // Fungsi untuk mendapatkan semua key (opsional)
             getAllKeys: function() {
-                return keysData;
+                return handleAPIRequest({ action: 'list' });
+            },
+            
+            generateKey: function(activeDays, maxDevices) {
+                return handleAPIRequest({ action: 'generate', activeDays, maxDevices });
+            },
+            
+            resetKey: function(key) {
+                return handleAPIRequest({ action: 'reset', key });
             }
         };
         
-        // Inisialisasi
+        // ========== SIMULASI HTTP SERVER (UNTUK REQUEST DARI EXECUTOR VIA HTTP) ==========
+        // Karena ini file statis, kita tidak bisa membuat HTTP server sungguhan.
+        // TAPI kita bisa menggunakan teknik polling atau WebSocket alternative.
+        
+        // Solusi: Gunakan server proxy atau deploy ke Vercel/Netlify dengan serverless functions
+        // Atau gunakan service seperti Supabase untuk database bersama
+        
+        console.log('========================================');
+        console.log('🏁 ONIUM RACE KEY SYSTEM');
+        console.log('========================================');
+        console.log('⚠️  PERINGATAN PENTING ⚠️');
+        console.log('========================================');
+        console.log('');
+        console.log('Website ini menyimpan data di LOCAL STORAGE browser Anda.');
+        console.log('');
+        console.log('Untuk terhubung dengan SCRIPT LUA di Roblox executor, Anda punya 2 opsi:');
+        console.log('');
+        console.log('1️⃣  MENGGUNAKAN WEB VIEW (Jika executor support):');
+        console.log('   - Buka halaman ini di web view executor');
+        console.log('   - Panggil window.OniumAPI.validateKey(key, deviceId)');
+        console.log('');
+        console.log('2️⃣  MENGGUNAKAN SERVER PROXY (Rekomendasi):');
+        console.log('   - Deploy server Node.js (index.js) ke Vercel/Render');
+        console.log('   - Atau gunakan Supabase sebagai database online');
+        console.log('');
+        console.log('3️⃣  MENGGUNAKAN LOCAL STORAGE (Hanya untuk testing):');
+        console.log('   - Data hanya tersimpan di browser ini');
+        console.log('   - Script Lua TIDAK BISA akses langsung');
+        console.log('');
+        console.log('========================================');
+        console.log('API Methods yang tersedia:');
+        console.log('  window.OniumAPI.validateKey(key, deviceId, deviceName)');
+        console.log('  window.OniumAPI.getAllKeys()');
+        console.log('  window.OniumAPI.generateKey(days, devices)');
+        console.log('  window.OniumAPI.resetKey(key)');
+        console.log('========================================');
+        
+        // Update status
+        document.getElementById('apiStatus').innerHTML = '⚠️ Local Storage Mode (Lua cannot access directly)';
+        document.getElementById('apiStatus').style.color = '#ff0';
+        
         loadData();
-        
-        // Auto refresh dashboard
         setInterval(() => {
-            if (document.getElementById('dashboard').classList.contains('active')) {
-                renderDashboard();
-            }
+            if (document.getElementById('dashboard').classList.contains('active')) renderDashboard();
         }, 5000);
-        
-        console.log('Onium Race Key System siap digunakan!');
-        console.log('Gunakan window.OniumAPI.validateKey(key, deviceId, deviceName) untuk validasi dari script Lua');
     </script>
 </body>
 </html>
