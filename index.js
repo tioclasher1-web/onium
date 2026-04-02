@@ -526,8 +526,3 @@ if (require.main === module) {
         console.log(`Server running on http://localhost:${PORT}`);
     });
 }
-
-
-cara menambahkan logo di tab Chrome (favicon) tapi dalam bentuk link 
-
-gimana caranya biar ku tambahkan sendiri
