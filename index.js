@@ -6,11 +6,11 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
 
-// Supabase Configuration (isi dari dashboard Supabase)
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// ========== SUPABASE CONFIG ==========
+// GANTI DENGAN CREDENTIALS SUPABASE ANDA!
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'YOUR_ANON_KEY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ========== DATABASE FUNCTIONS ==========
@@ -279,10 +279,10 @@ app.delete('/api/delete-key/:key', async (req, res) => {
     }
 });
 
-// ========== SERVE HTML ==========
-// GANTI URL LOGO DI BAWAH INI DENGAN LINK GAMBAR ANDA
+// ========== SERVE HTML DASHBOARD ==========
+// 🔥 GANTI URL DI BAWAH INI DENGAN LINK GAMBAR ANDA!
 const LOGO_URL = 'https://cdn.discordapp.com/attachments/1365640947433603112/1489269363587678208/ChatGPT_Image_Apr_2_2026_09_22_56_PM.png';
-const FAVICON_URL = 'https://cdn.discordapp.com/attachments/1365640947433603112/1489269363587678208/ChatGPT_Image_Apr_2_2026_09_22_56_PM.png?ex=69cfcdad&is=69ce7c2d&hm=c5f132a8c311b798fa95d8743188c3501a1c862438f87c6450d37764c5a3b9d8&';
+const FAVICON_URL = 'https://cdn.discordapp.com/attachments/1365640947433603112/1489269363587678208/ChatGPT_Image_Apr_2_2026_09_22_56_PM.png';
 
 const htmlTemplate = `<!DOCTYPE html>
 <html lang="id">
@@ -294,7 +294,6 @@ const htmlTemplate = `<!DOCTYPE html>
     <!-- FAVICON - Support semua jenis link -->
     <link rel="icon" type="image/png" href="${FAVICON_URL}">
     <link rel="shortcut icon" type="image/png" href="${FAVICON_URL}">
-    <!-- Fallback emoji jika gambar gagal load -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏁%3C/text%3E%3C/svg%3E">
     
     <style>
@@ -322,17 +321,17 @@ const htmlTemplate = `<!DOCTYPE html>
             border-radius: 50%;
             margin-bottom: 10px;
             border: 3px solid #667eea;
-        }
-        .sidebar-logo h2 {
-            font-size: 20px;
-            margin-top: 10px;
+            object-fit: cover;
         }
         .sidebar-logo .logo-text {
-            display: flex;
-            align-items: center;
+            display: none;
             justify-content: center;
+            align-items: center;
             gap: 8px;
         }
+        .sidebar-logo .logo-text span { font-size: 40px; }
+        .sidebar-logo .logo-text h2 { margin: 0; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 20px; }
         .nav-menu { list-style: none; }
         .nav-item { margin-bottom: 15px; }
         .nav-link {
@@ -371,6 +370,7 @@ const htmlTemplate = `<!DOCTYPE html>
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
+            transition: border-color 0.3s;
         }
         .form-group input:focus { outline: none; border-color: #667eea; }
         button {
@@ -402,6 +402,7 @@ const htmlTemplate = `<!DOCTYPE html>
             font-weight: bold;
             color: #667eea;
             margin: 10px 0;
+            word-break: break-all;
         }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; }
@@ -418,9 +419,17 @@ const htmlTemplate = `<!DOCTYPE html>
         .status-active { background: #d4edda; color: #155724; }
         .status-expired { background: #f8d7da; color: #721c24; }
         .status-inactive { background: #fff3cd; color: #856404; }
-        .delete-btn, .reset-device-btn { padding: 6px 12px; font-size: 12px; margin: 0 5px; }
-        .delete-btn { background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; }
-        .reset-device-btn { background: #ffc107; color: #333; border: none; border-radius: 6px; cursor: pointer; }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .delete-btn:hover { opacity: 0.8; transform: none; }
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -458,6 +467,7 @@ const htmlTemplate = `<!DOCTYPE html>
         }
         .modal-buttons { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
         .btn-cancel { background: #6c757d; color: white; border: none; padding: 8px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-cancel:hover { transform: none; }
         .message {
             padding: 12px;
             border-radius: 8px;
@@ -470,7 +480,7 @@ const htmlTemplate = `<!DOCTYPE html>
         @media (max-width: 768px) {
             .sidebar { width: 80px; padding: 20px 10px; }
             .sidebar-logo img { max-width: 50px; }
-            .sidebar-logo h2, .nav-link span:not(.emoji) { display: none; }
+            .sidebar-logo .logo-text h2, .sidebar > h2, .nav-link span:not(.emoji) { display: none; }
             .nav-link { justify-content: center; }
             .nav-link .emoji { margin-right: 0; font-size: 24px; }
             .main-content { padding: 15px; }
@@ -481,13 +491,13 @@ const htmlTemplate = `<!DOCTYPE html>
     <div class="container">
         <div class="sidebar">
             <div class="sidebar-logo">
-                <img src="${LOGO_URL}" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
-                <div class="logo-text" style="display: none;">
+                <img src="${LOGO_URL}" alt="Logo Onium Race" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                <div class="logo-text">
                     <span>🏁</span>
                     <h2>Onium Race</h2>
                 </div>
-                <h2 style="display: none;" class="logo-fallback">🏁 Onium Race</h2>
             </div>
+            <h2>🏁 Onium Race</h2>
             <ul class="nav-menu">
                 <li class="nav-item"><div class="nav-link active" data-page="dashboard"><span class="emoji">📊</span><span>Dashboard</span></div></li>
                 <li class="nav-item"><div class="nav-link" data-page="getkey"><span class="emoji">🔑</span><span>Get Key</span></div></li>
@@ -518,8 +528,14 @@ const htmlTemplate = `<!DOCTYPE html>
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
                     <form id="generateKeyForm">
-                        <div class="form-group"><label>Masa Aktif (Hari)</label><input type="number" id="activeDays" required min="1" placeholder="Contoh: 30"></div>
-                        <div class="form-group"><label>Jumlah Maksimal Device</label><input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2"></div>
+                        <div class="form-group">
+                            <label>Masa Aktif (Hari)</label>
+                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
+                        </div>
+                        <div class="form-group">
+                            <label>Jumlah Maksimal Device</label>
+                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
+                        </div>
                         <button type="submit">Get Key 🚀</button>
                     </form>
                     <div id="keyResult" class="key-result">
@@ -581,15 +597,15 @@ const htmlTemplate = `<!DOCTYPE html>
                         
                         const statusClass = status === 'Aktif' ? 'status-active' : (status === 'Expired' ? 'status-expired' : 'status-inactive');
                         
-                        tbody.innerHTML += \`
+                        tbody.innerHTML += `
                             <tr>
-                                <td><strong>\${key}</strong></td>
-                                <td>\${data.usedDevices}/\${data.maxDevices}</td>
-                                <td>\${data.remainingDays}</td>
-                                <td><span class="status-badge \${statusClass}">\${status}</span></td>
-                                <td><button class="delete-btn" onclick="deleteKey('\${key}')">Hapus</button></td>
+                                <td><strong>${key}</strong></td>
+                                <td>${data.usedDevices}/${data.maxDevices}</td>
+                                <td>${data.remainingDays}</td>
+                                <td><span class="status-badge ${statusClass}">${status}</span></td>
+                                <td><button class="delete-btn" onclick="deleteKey('${key}')">Hapus</button></td>
                             </tr>
-                        \`;
+                        `;
                     }
                 }
                 
@@ -598,17 +614,20 @@ const htmlTemplate = `<!DOCTYPE html>
                 document.getElementById('expiredKeys').textContent = expiredKeys;
             } catch (error) {
                 console.error('Error loading keys:', error);
+                document.getElementById('keysTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Error loading data</td></tr>';
             }
         }
         
         async function deleteKey(key) {
-            if (confirm(\`Yakin ingin menghapus key \${key}?\`)) {
+            if (confirm(`Yakin ingin menghapus key ${key}?`)) {
                 try {
-                    const response = await fetch(\`/api/delete-key/\${encodeURIComponent(key)}\`, { method: 'DELETE' });
+                    const response = await fetch(`/api/delete-key/${encodeURIComponent(key)}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (result.success) {
                         showMessage('Key berhasil dihapus', 'success');
                         loadKeys();
+                    } else {
+                        showMessage(result.error, 'error');
                     }
                 } catch (error) {
                     showMessage('Error menghapus key', 'error');
@@ -639,6 +658,8 @@ const htmlTemplate = `<!DOCTYPE html>
                     setTimeout(() => {
                         document.getElementById('keyResult').classList.remove('show');
                     }, 5000);
+                    document.getElementById('activeDays').value = '';
+                    document.getElementById('maxDevices').value = '';
                 } else {
                     showMessage(result.error, 'error', 'generateMessage');
                 }
@@ -676,6 +697,7 @@ const htmlTemplate = `<!DOCTYPE html>
             } catch (error) {
                 showMessage('Error resetting key', 'error', 'resetMessage');
             }
+            currentResetKey = null;
         });
         
         document.getElementById('confirmNo').addEventListener('click', () => {
@@ -686,7 +708,7 @@ const htmlTemplate = `<!DOCTYPE html>
         function showMessage(message, type, elementId = 'generateMessage') {
             const msgDiv = document.getElementById(elementId);
             msgDiv.textContent = message;
-            msgDiv.className = \`message \${type} show\`;
+            msgDiv.className = `message ${type} show`;
             setTimeout(() => msgDiv.classList.remove('show'), 3000);
         }
         
@@ -701,19 +723,14 @@ const htmlTemplate = `<!DOCTYPE html>
             });
         });
         
-        // Fix for logo fallback
-        const logoImg = document.querySelector('.sidebar-logo img');
-        if (logoImg) {
-            logoImg.onerror = function() {
-                this.style.display = 'none';
-                const logoText = document.querySelector('.logo-text');
-                if (logoText) logoText.style.display = 'flex';
-            };
-        }
-        
+        // Load data
         loadKeys();
+        
+        // Auto refresh setiap 10 detik
         setInterval(() => {
-            if (document.getElementById('dashboard').classList.contains('active')) loadKeys();
+            if (document.getElementById('dashboard').classList.contains('active')) {
+                loadKeys();
+            }
         }, 10000);
     </script>
 </body>
@@ -723,10 +740,14 @@ app.get('/', (req, res) => {
     res.send(htmlTemplate);
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Logo URL: ${LOGO_URL}`);
-    console.log(`Favicon URL: ${FAVICON_URL}`);
-});
-
+// ========== UNTUK VERCEL ==========
 module.exports = app;
+
+// Untuk running lokal
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`✅ Supabase terhubung`);
+        console.log(`📊 Dashboard: http://localhost:${PORT}`);
+    });
+}
