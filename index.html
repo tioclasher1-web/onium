@@ -3,103 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onium Race - Key Management System</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Onium Race - Key System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: #1a1a2e; color: white; padding: 20px; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; }
+        .nav-link { padding: 12px 20px; margin: 5px 0; border-radius: 10px; cursor: pointer; }
+        .nav-link:hover { background: #667eea; }
+        .nav-link.active { background: #667eea; }
+        .main-content { flex: 1; padding: 30px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .card h3 { margin-bottom: 20px; color: #333; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+        button { background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background: #5a67d8; }
+        .key-result { margin-top: 20px; padding: 20px; background: #e8f5e9; border-radius: 10px; display: none; }
+        .key-result.show { display: block; }
+        .key-display { font-family: monospace; font-size: 18px; font-weight: bold; color: #667eea; word-break: break-all; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f5f5f5; }
+        .status-active { background: #4caf50; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .status-expired { background: #f44336; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        .delete-btn, .reset-btn { padding: 5px 10px; margin: 0 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .delete-btn { background: #f44336; color: white; }
+        .reset-btn { background: #ff9800; color: white; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 15px; text-align: center; }
+        .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
+        .message { padding: 12px; border-radius: 8px; margin-top: 15px; display: none; }
+        .message.show { display: block; }
+        .message.success { background: #4caf50; color: white; }
+        .message.error { background: #f44336; color: white; }
+        .api-status { position: fixed; bottom: 10px; right: 10px; background: black; padding: 5px 12px; border-radius: 20px; font-size: 11px; color: #0f0; }
+        .reset-container { display: flex; gap: 10px; }
+        .reset-container input { flex: 1; }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="sidebar">
             <h2>🏁 Onium Race</h2>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <div class="nav-link active" data-page="dashboard">
-                        <span class="emoji">📊</span>
-                        <span>Dashboard</span>
-                    </div>
-                </li>
-                <li class="nav-item">
-                    <div class="nav-link" data-page="getkey">
-                        <span class="emoji">🔑</span>
-                        <span>Get Key</span>
-                    </div>
-                </li>
-                <li class="nav-item">
-                    <div class="nav-link" data-page="reset">
-                        <span class="emoji">🔄</span>
-                        <span>Reset Key</span>
-                    </div>
-                </li>
-            </ul>
+            <div class="nav-link active" data-page="dashboard">📊 Dashboard</div>
+            <div class="nav-link" data-page="getkey">🔑 Get Key</div>
+            <div class="nav-link" data-page="reset">🔄 Reset Key</div>
         </div>
         
         <div class="main-content">
-            <!-- Dashboard Page -->
+            <!-- Dashboard -->
             <div id="dashboard" class="page active">
                 <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalKeys">0</div>
-                        <div class="stat-label">Total Keys</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="activeKeys">0</div>
-                        <div class="stat-label">Active Keys</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="expiredKeys">0</div>
-                        <div class="stat-label">Expired Keys</div>
-                    </div>
+                    <div class="stat-card"><div class="stat-number" id="totalKeys">0</div><div>Total Keys</div></div>
+                    <div class="stat-card"><div class="stat-number" id="activeKeys">0</div><div>Active Keys</div></div>
+                    <div class="stat-card"><div class="stat-number" id="expiredKeys">0</div><div>Expired Keys</div></div>
                 </div>
-                
                 <div class="card">
                     <h3>📋 Daftar Key</h3>
-                    <div class="table-container">
-                        <table id="keysTable">
-                            <thead>
-                                <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
-                            </thead>
-                            <tbody id="keysTableBody">
-                                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <table style="width:100%">
+                        <thead><tr><th>Key</th><th>Device</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody id="keysTableBody"><tr><td colspan="5" style="text-align:center">Loading...</td></tr></tbody>
+                    </table>
                 </div>
             </div>
             
-            <!-- Get Key Page -->
+            <!-- Get Key -->
             <div id="getkey" class="page">
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
-                    <form id="generateKeyForm">
-                        <div class="form-group">
-                            <label>Masa Aktif (Hari)</label>
-                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
-                        </div>
-                        <div class="form-group">
-                            <label>Jumlah Maksimal Device</label>
-                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
-                        </div>
-                        <button type="submit">Get Key 🚀</button>
-                    </form>
+                    <div class="form-group">
+                        <label>Masa Aktif (Hari)</label>
+                        <input type="number" id="activeDays" placeholder="30">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah Maksimal Device</label>
+                        <input type="number" id="maxDevices" placeholder="2">
+                    </div>
+                    <button onclick="generateKey()">Get Key 🚀</button>
                     
                     <div id="keyResult" class="key-result">
                         <h4>✅ Key Berhasil Dibuat!</h4>
                         <div class="key-display" id="generatedKey"></div>
-                        <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
-                        <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
-                        <p style="color: #667eea; margin-top: 15px;">🎉 Terima kasih sudah membeli VIP kami!</p>
+                        <p>Masa Aktif: <span id="resultDays"></span> hari</p>
+                        <p>Max Device: <span id="resultDevices"></span> device</p>
                     </div>
                     <div id="generateMessage" class="message"></div>
                 </div>
             </div>
             
-            <!-- Reset Key Page -->
+            <!-- Reset Key -->
             <div id="reset" class="page">
                 <div class="card">
                     <h3>🔄 Reset Key Device</h3>
                     <div class="reset-container">
                         <input type="text" id="resetKeyInput" placeholder="Masukkan Key">
-                        <button id="resetBtn">Reset Device</button>
+                        <button onclick="resetKey()">Reset Device</button>
                     </div>
                     <div id="resetMessage" class="message"></div>
                 </div>
@@ -107,8 +108,235 @@
         </div>
     </div>
     
-    <div class="api-status" id="apiStatus">🌐 Connecting to Supabase...</div>
-    
-    <script src="script.js"></script>
+    <div class="api-status" id="apiStatus">🌐 Connecting...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ============ GANTI DENGAN CREDENTIALS SUPABASE ANDA ============
+        const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';  // GANTI INI
+        const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';  // GANTI INI
+        // =================================================================
+        
+        let supabase;
+        
+        // Generate random key
+        function generateRandomKey() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 5; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return `ONIUM-RACE-${result}`;
+        }
+        
+        // Show message
+        function showMessage(msg, type, elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = msg;
+                el.className = `message ${type} show`;
+                setTimeout(() => el.classList.remove('show'), 3000);
+            }
+        }
+        
+        // Format date
+        function getRemainingDays(createdAt, activeDays) {
+            if (!createdAt) return activeDays;
+            const created = new Date(createdAt);
+            const now = new Date();
+            const diff = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+            return Math.max(0, activeDays - diff);
+        }
+        
+        // Load and render dashboard
+        async function loadDashboard() {
+            try {
+                const { data: keys, error } = await supabase
+                    .from('keys')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const tbody = document.getElementById('keysTableBody');
+                let total = keys.length;
+                let active = 0;
+                let expired = 0;
+                
+                if (total === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">Belum ada key</td></tr>';
+                } else {
+                    tbody.innerHTML = '';
+                    for (const k of keys) {
+                        const remaining = getRemainingDays(k.created_at, k.active_days);
+                        const status = remaining <= 0 ? 'Expired' : 'Aktif';
+                        if (status === 'Aktif') active++;
+                        if (status === 'Expired') expired++;
+                        
+                        const deviceCount = k.devices ? Object.keys(k.devices).length : 0;
+                        const statusClass = status === 'Aktif' ? 'status-active' : 'status-expired';
+                        
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><strong>${k.key}</strong></td>
+                                <td>${deviceCount}/${k.max_devices}</td>
+                                <td>${remaining}</td>
+                                <td><span class="${statusClass}">${status}</span></td>
+                                <td>
+                                    <button class="reset-btn" onclick="resetDeviceKey('${k.key}')">Reset</button>
+                                    <button class="delete-btn" onclick="deleteKey('${k.key}')">Hapus</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+                
+                document.getElementById('totalKeys').textContent = total;
+                document.getElementById('activeKeys').textContent = active;
+                document.getElementById('expiredKeys').textContent = expired;
+                
+            } catch (err) {
+                console.error('Load error:', err);
+                document.getElementById('keysTableBody').innerHTML = '<tr><td colspan="5">Error loading data</td></tr>';
+            }
+        }
+        
+        // Generate new key
+        window.generateKey = async function() {
+            const days = document.getElementById('activeDays').value;
+            const devices = document.getElementById('maxDevices').value;
+            
+            if (!days || !devices) {
+                showMessage('Isi semua field', 'error', 'generateMessage');
+                return;
+            }
+            
+            const newKey = generateRandomKey();
+            
+            try {
+                const { error } = await supabase
+                    .from('keys')
+                    .insert([{
+                        key: newKey,
+                        active_days: parseInt(days),
+                        max_devices: parseInt(devices),
+                        devices: {},
+                        created_at: new Date().toISOString()
+                    }]);
+                
+                if (error) throw error;
+                
+                document.getElementById('generatedKey').textContent = newKey;
+                document.getElementById('resultDays').textContent = days;
+                document.getElementById('resultDevices').textContent = devices;
+                document.getElementById('keyResult').classList.add('show');
+                document.getElementById('activeDays').value = '';
+                document.getElementById('maxDevices').value = '';
+                
+                setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
+                
+                showMessage('Key berhasil dibuat!', 'success', 'generateMessage');
+                loadDashboard();
+                
+            } catch (err) {
+                showMessage('Gagal: ' + err.message, 'error', 'generateMessage');
+            }
+        };
+        
+        // Reset device key
+        window.resetDeviceKey = async function(key) {
+            if (!confirm(`Reset device untuk key ${key}?`)) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('keys')
+                    .update({ devices: {}, created_at: new Date().toISOString() })
+                    .eq('key', key);
+                
+                if (error) throw error;
+                
+                showMessage('Device berhasil direset!', 'success', 'resetMessage');
+                loadDashboard();
+            } catch (err) {
+                showMessage('Gagal reset: ' + err.message, 'error', 'resetMessage');
+            }
+        };
+        
+        // Reset from input
+        window.resetKey = async function() {
+            const key = document.getElementById('resetKeyInput').value.trim();
+            if (!key) {
+                showMessage('Masukkan key', 'error', 'resetMessage');
+                return;
+            }
+            
+            try {
+                const { error } = await supabase
+                    .from('keys')
+                    .update({ devices: {}, created_at: new Date().toISOString() })
+                    .eq('key', key);
+                
+                if (error) throw error;
+                
+                showMessage('Key berhasil direset!', 'success', 'resetMessage');
+                document.getElementById('resetKeyInput').value = '';
+                loadDashboard();
+            } catch (err) {
+                showMessage('Gagal reset: ' + err.message, 'error', 'resetMessage');
+            }
+        };
+        
+        // Delete key
+        window.deleteKey = async function(key) {
+            if (!confirm(`Hapus key ${key}?`)) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('keys')
+                    .delete()
+                    .eq('key', key);
+                
+                if (error) throw error;
+                
+                showMessage('Key berhasil dihapus', 'success');
+                loadDashboard();
+            } catch (err) {
+                showMessage('Gagal hapus: ' + err.message, 'error');
+            }
+        };
+        
+        // Navigation
+        function setupNavigation() {
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const page = link.dataset.page;
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                    document.getElementById(page).classList.add('active');
+                    if (page === 'dashboard') loadDashboard();
+                });
+            });
+        }
+        
+        // Initialize
+        async function init() {
+            setupNavigation();
+            
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                await loadDashboard();
+                document.getElementById('apiStatus').innerHTML = '✅ Connected to Supabase';
+                document.getElementById('apiStatus').style.color = '#0f0';
+            } catch (err) {
+                document.getElementById('apiStatus').innerHTML = '❌ Connection failed';
+                document.getElementById('apiStatus').style.color = '#f00';
+                console.error('Init error:', err);
+            }
+        }
+        
+        init();
+    </script>
 </body>
 </html>
