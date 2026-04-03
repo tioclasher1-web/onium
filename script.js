@@ -4,7 +4,6 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr';
 
 let supabase;
 
-// Generate random key
 function generateKey() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = '';
@@ -12,28 +11,20 @@ function generateKey() {
     return `ONIUM-RACE-${result}`;
 }
 
-// Calculate remaining days
 function getRemainingDays(createdAt, activeDays) {
     if (!createdAt) return activeDays;
     const diffDays = Math.floor((new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24));
-    const remaining = activeDays - diffDays;
-    return remaining < 0 ? 0 : remaining;
+    return Math.max(0, activeDays - diffDays);
 }
 
-// Get key status
 function getKeyStatus(createdAt, activeDays) {
     if (!createdAt) return 'Belum Aktif';
     return getRemainingDays(createdAt, activeDays) <= 0 ? 'Expired' : 'Aktif';
 }
 
-// Load all keys from Supabase
 async function loadKeys() {
     try {
-        const { data, error } = await supabase
-            .from('keys')
-            .select('*')
-            .order('created_at', { ascending: false });
-        
+        const { data, error } = await supabase.from('keys').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         return data || [];
     } catch (error) {
@@ -43,12 +34,10 @@ async function loadKeys() {
     }
 }
 
-// Render dashboard
 async function renderDashboard() {
     const keys = await loadKeys();
     const tbody = document.getElementById('keysTableBody');
-    const totalKeys = keys.length;
-    let activeKeys = 0, expiredKeys = 0;
+    let totalKeys = keys.length, activeKeys = 0, expiredKeys = 0;
     
     if (totalKeys === 0) {
         tbody.innerHTML = '<tr><td colspan="5">Belum ada key</td></tr>';
@@ -60,7 +49,7 @@ async function renderDashboard() {
             if (status === 'Expired') expiredKeys++;
             
             const usedDevices = keyData.devices ? Object.keys(keyData.devices).length : 0;
-            const statusClass = status === 'Aktif' ? 'status-active' : (status === 'Expired' ? 'status-expired' : 'status-inactive');
+            const statusClass = status === 'Aktif' ? 'status-active' : 'status-expired';
             const remainingDays = getRemainingDays(keyData.created_at, keyData.active_days);
             
             tbody.innerHTML += `
@@ -83,69 +72,47 @@ async function renderDashboard() {
     document.getElementById('expiredKeys').textContent = expiredKeys;
 }
 
-// Generate new key
 async function generateNewKey(activeDays, maxDevices) {
     try {
         const newKey = generateKey();
-        
-        const { error } = await supabase
-            .from('keys')
-            .insert([{
-                key: newKey,
-                active_days: parseInt(activeDays),
-                max_devices: parseInt(maxDevices),
-                devices: {},
-                created_at: new Date().toISOString()
-            }]);
-        
+        const { error } = await supabase.from('keys').insert([{
+            key: newKey,
+            active_days: parseInt(activeDays),
+            max_devices: parseInt(maxDevices),
+            devices: {},
+            created_at: new Date().toISOString()
+        }]);
         if (error) throw error;
-        
         return { success: true, key: newKey };
     } catch (error) {
-        console.error('Error generating key:', error);
         return { success: false, error: error.message };
     }
 }
 
-// Reset key device
 async function resetKeyDevice(key) {
-    if (confirm(`Reset device untuk key ${key}?`)) {
-        try {
-            const { error } = await supabase
-                .from('keys')
-                .update({ devices: {}, created_at: new Date().toISOString() })
-                .eq('key', key);
-            
-            if (error) throw error;
-            
-            showMessage('Device berhasil direset!', 'success', 'resetMessage');
-            renderDashboard();
-        } catch (error) {
-            showMessage('Gagal reset device: ' + error.message, 'error', 'resetMessage');
-        }
+    if (!confirm(`Reset device untuk key ${key}?`)) return;
+    try {
+        const { error } = await supabase.from('keys').update({ devices: {}, created_at: new Date().toISOString() }).eq('key', key);
+        if (error) throw error;
+        showMessage('Device berhasil direset!', 'success', 'resetMessage');
+        renderDashboard();
+    } catch (error) {
+        showMessage('Gagal reset device: ' + error.message, 'error', 'resetMessage');
     }
 }
 
-// Delete key
 async function deleteKey(key) {
-    if (confirm(`Hapus key ${key}?`)) {
-        try {
-            const { error } = await supabase
-                .from('keys')
-                .delete()
-                .eq('key', key);
-            
-            if (error) throw error;
-            
-            showMessage('Key berhasil dihapus', 'success');
-            renderDashboard();
-        } catch (error) {
-            showMessage('Gagal menghapus key: ' + error.message, 'error');
-        }
+    if (!confirm(`Hapus key ${key}?`)) return;
+    try {
+        const { error } = await supabase.from('keys').delete().eq('key', key);
+        if (error) throw error;
+        showMessage('Key berhasil dihapus', 'success');
+        renderDashboard();
+    } catch (error) {
+        showMessage('Gagal menghapus key: ' + error.message, 'error');
     }
 }
 
-// Show message
 function showMessage(message, type, elementId = 'generateMessage') {
     const msgDiv = document.getElementById(elementId);
     if (msgDiv) {
@@ -155,27 +122,22 @@ function showMessage(message, type, elementId = 'generateMessage') {
     }
 }
 
-// Initialize Supabase
 async function initSupabase() {
     try {
         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // Test connection
         const { error } = await supabase.from('keys').select('count', { count: 'exact', head: true });
         if (error && error.code !== 'PGRST116') throw error;
-        
         document.getElementById('apiStatus').innerHTML = '✅ Connected to Supabase';
         document.getElementById('apiStatus').style.color = '#0f0';
         return true;
     } catch (error) {
-        console.error('Supabase connection error:', error);
-        document.getElementById('apiStatus').innerHTML = '❌ Connection failed: Check credentials';
+        document.getElementById('apiStatus').innerHTML = '❌ Connection failed';
         document.getElementById('apiStatus').style.color = '#f00';
         return false;
     }
 }
 
-// Event listeners
+// Event Listeners
 document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const activeDays = parseInt(document.getElementById('activeDays').value);
@@ -187,7 +149,6 @@ document.getElementById('generateKeyForm').addEventListener('submit', async (e) 
     }
     
     const result = await generateNewKey(activeDays, maxDevices);
-    
     if (result.success) {
         document.getElementById('generatedKey').textContent = result.key;
         document.getElementById('resultDays').textContent = activeDays;
@@ -199,7 +160,7 @@ document.getElementById('generateKeyForm').addEventListener('submit', async (e) 
         renderDashboard();
         showMessage('Key berhasil dibuat!', 'success', 'generateMessage');
     } else {
-        showMessage('Gagal membuat key: ' + result.error, 'error', 'generateMessage');
+        showMessage('Gagal: ' + result.error, 'error', 'generateMessage');
     }
 });
 
@@ -213,7 +174,6 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
     document.getElementById('resetKeyInput').value = '';
 });
 
-// Navigation
 document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', () => {
         const page = link.dataset.page;
@@ -225,50 +185,7 @@ document.querySelectorAll('.nav-link').forEach(link => {
     });
 });
 
-// Expose API for Lua executor
-window.OniumAPI = {
-    validateKey: async (key, deviceId, deviceName) => {
-        try {
-            const { data: keyData, error } = await supabase
-                .from('keys')
-                .select('*')
-                .eq('key', key)
-                .single();
-            
-            if (error || !keyData) {
-                return { success: false, valid: false, error: 'Key tidak valid' };
-            }
-            
-            const remainingDays = getRemainingDays(keyData.created_at, keyData.active_days);
-            if (remainingDays <= 0) {
-                return { success: false, valid: false, error: 'Key expired' };
-            }
-            
-            const devices = keyData.devices || {};
-            
-            if (devices[deviceId]) {
-                return { success: true, valid: true, remainingDays, activeDays: keyData.active_days, maxDevices: keyData.max_devices };
-            }
-            
-            if (Object.keys(devices).length >= keyData.max_devices) {
-                return { success: false, valid: false, needReset: true, error: 'Batas device tercapai' };
-            }
-            
-            devices[deviceId] = { deviceId, deviceName: deviceName || 'Unknown', usedAt: new Date().toISOString() };
-            await supabase.from('keys').update({ devices }).eq('key', key);
-            
-            return { success: true, valid: true, remainingDays, activeDays: keyData.active_days, maxDevices: keyData.max_devices };
-        } catch (error) {
-            return { success: false, valid: false, error: error.message };
-        }
-    },
-    getAllKeys: async () => {
-        const { data } = await supabase.from('keys').select('*');
-        return data || [];
-    }
-};
-
-// Start app
+// Start
 (async () => {
     await initSupabase();
     await renderDashboard();
