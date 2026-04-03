@@ -6,6 +6,9 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/keys.js" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/keys.js"
+    }
   ]
 }
