@@ -34,6 +34,7 @@
         </div>
         
         <div class="main-content">
+            <!-- Dashboard Page -->
             <div id="dashboard" class="page active">
                 <div class="stats">
                     <div class="stat-card">
@@ -57,13 +58,15 @@
                             <thead>
                                 <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
                             </thead>
-                            <tbody id="keysTableBody"><tr><td colspan="5">Loading......</td></tr>
+                            <tbody id="keysTableBody">
+                                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
             
+            <!-- Get Key Page -->
             <div id="getkey" class="page">
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
@@ -84,15 +87,17 @@
                         <div class="key-display" id="generatedKey"></div>
                         <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
                         <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
+                        <p style="color: #667eea; margin-top: 15px;">🎉 Terima kasih sudah membeli VIP kami!</p>
                     </div>
                     <div id="generateMessage" class="message"></div>
                 </div>
             </div>
             
+            <!-- Reset Key Page -->
             <div id="reset" class="page">
                 <div class="card">
                     <h3>🔄 Reset Key Device</h3>
-                    <div style="display: flex; gap: 10px;">
+                    <div class="reset-container">
                         <input type="text" id="resetKeyInput" placeholder="Masukkan Key">
                         <button id="resetBtn">Reset Device</button>
                     </div>
@@ -105,40 +110,5 @@
     <div class="api-status" id="apiStatus">🌐 Connecting to Supabase...</div>
     
     <script src="script.js"></script>
-    <script>
-        // Fallback navigation jika script.js bermasalah
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Loaded - Setting up navigation');
-            
-            const navLinks = document.querySelectorAll('.nav-link');
-            console.log('Found nav links:', navLinks.length);
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const pageId = this.getAttribute('data-page');
-                    console.log('Navigating to:', pageId);
-                    
-                    // Hapus active class dari semua nav link
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Sembunyikan semua page
-                    document.querySelectorAll('.page').forEach(page => {
-                        page.classList.remove('active');
-                    });
-                    
-                    // Tampilkan page yang dipilih
-                    const targetPage = document.getElementById(pageId);
-                    if (targetPage) {
-                        targetPage.classList.add('active');
-                        console.log('Page shown:', pageId);
-                    } else {
-                        console.error('Page not found:', pageId);
-                    }
-                });
-            });
-        });
-    </script>
 </body>
 </html>
