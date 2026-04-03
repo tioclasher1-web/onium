@@ -6,7 +6,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-    // CORS
+    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -44,7 +44,6 @@ export default async function handler(req, res) {
                 }
                 
                 const devices = keyData.devices || {};
-                const currentDevices = Object.keys(devices).length;
                 
                 if (devices[deviceId]) {
                     return res.json({
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
                     });
                 }
                 
-                if (currentDevices >= keyData.max_devices) {
+                if (Object.keys(devices).length >= keyData.max_devices) {
                     return res.json({
                         success: false, valid: false, needReset: true,
                         error: `Batas device tercapai (max ${keyData.max_devices} device)`
@@ -77,17 +76,13 @@ export default async function handler(req, res) {
             case 'generate':
                 const newKey = 'ONIUM-RACE-' + Math.random().toString(36).substring(2, 7).toUpperCase();
                 
-                const { error: insertError } = await supabase
-                    .from('keys')
-                    .insert([{
-                        key: newKey,
-                        active_days: parseInt(activeDays),
-                        max_devices: parseInt(maxDevices),
-                        devices: {},
-                        created_at: new Date().toISOString()
-                    }]);
-                
-                if (insertError) throw insertError;
+                await supabase.from('keys').insert([{
+                    key: newKey,
+                    active_days: parseInt(activeDays),
+                    max_devices: parseInt(maxDevices),
+                    devices: {},
+                    created_at: new Date().toISOString()
+                }]);
                 
                 return res.json({ success: true, key: newKey });
                 
@@ -97,10 +92,14 @@ export default async function handler(req, res) {
                     .update({ devices: {}, created_at: new Date().toISOString() })
                     .eq('key', key);
                 
-                return res.json({ success: true, message: 'Key direset' });
+                return res.json({ success: true, message: 'Key berhasil direset' });
                 
             case 'list':
-                const { data: keys } = await supabase.from('keys').select('*').order('created_at', { ascending: false });
+                const { data: keys } = await supabase
+                    .from('keys')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
                 return res.json({ success: true, keys });
                 
             default:
