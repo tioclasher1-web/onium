@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onium Race - Key Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>🏁 Onium Race</h2>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <div class="nav-link active" data-page="dashboard">
+                        <span class="emoji">📊</span>
+                        <span>Dashboard</span>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="nav-link" data-page="getkey">
+                        <span class="emoji">🔑</span>
+                        <span>Get Key</span>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="nav-link" data-page="reset">
+                        <span class="emoji">🔄</span>
+                        <span>Reset Key</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <div id="dashboard" class="page active">
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalKeys">0</div>
+                        <div class="stat-label">Total Keys</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeKeys">0</div>
+                        <div class="stat-label">Active Keys</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="expiredKeys">0</div>
+                        <div class="stat-label">Expired Keys</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>📋 Daftar Key</h3>
+                    <div class="table-container">
+                        <table id="keysTable">
+                            <thead>
+                                <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
+                            </thead>
+                            <tbody id="keysTableBody"><tr><td colspan="5">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="getkey" class="page">
+                <div class="card">
+                    <h3>🎁 Get New Key</h3>
+                    <form id="generateKeyForm">
+                        <div class="form-group">
+                            <label>Masa Aktif (Hari)</label>
+                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
+                        </div>
+                        <div class="form-group">
+                            <label>Jumlah Maksimal Device</label>
+                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
+                        </div>
+                        <button type="submit">Get Key 🚀</button>
+                    </form>
+                    
+                    <div id="keyResult" class="key-result">
+                        <h4>✅ Key Berhasil Dibuat!</h4>
+                        <div class="key-display" id="generatedKey"></div>
+                        <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
+                        <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
+                        <p style="color: #667eea; margin-top: 15px;">🎉 Terima kasih sudah membeli VIP kami!</p>
+                    </div>
+                    <div id="generateMessage" class="message"></div>
+                </div>
+            </div>
+            
+            <div id="reset" class="page">
+                <div class="card">
+                    <h3>🔄 Reset Key Device</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="flex:1; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
+                        <button id="resetBtn">Reset Device</button>
+                    </div>
+                    <div id="resetMessage" class="message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3>⚠️ Konfirmasi Reset</h3>
+            <p>Apakah Anda yakin ingin mereset key ini?</p>
+            <div class="modal-buttons">
+                <button id="confirmYes" style="background:#dc3545;">Yes</button>
+                <button id="confirmNo" class="btn-cancel">No</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="api-status" id="apiStatus">🌐 Connecting to Supabase...</div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
