@@ -78,8 +78,14 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .card {
@@ -120,6 +126,24 @@ body {
     border-color: #667eea;
 }
 
+.reset-container {
+    display: flex;
+    gap: 10px;
+}
+
+.reset-container input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+.reset-container input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
 button {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -149,8 +173,14 @@ button:hover {
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .key-display {
@@ -159,6 +189,7 @@ button:hover {
     font-weight: bold;
     color: #667eea;
     margin: 10px 0;
+    word-break: break-all;
 }
 
 .table-container {
@@ -212,10 +243,14 @@ tr:hover {
     padding: 6px 12px;
     font-size: 12px;
     margin: 0 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
 .delete-btn {
     background: #dc3545;
+    color: white;
 }
 
 .reset-device-btn {
@@ -278,7 +313,6 @@ tr:hover {
     padding: 5px 12px;
     border-radius: 20px;
     font-size: 11px;
-    color: #0f0;
     font-family: monospace;
     z-index: 1000;
 }
@@ -304,5 +338,9 @@ tr:hover {
     
     .main-content {
         padding: 15px;
+    }
+    
+    .reset-container {
+        flex-direction: column;
     }
 }
