@@ -1,6 +1,6 @@
 // Supabase configuration - GANTI DENGAN PUNYA ANDA
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+const SUPABASE_URL = 'https://awikwxarhdklwvfhhglh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr';
 
 let supabase;
 
