@@ -3,48 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onium Race - Key Management System (Supabase Cloud)</title>
-    
+    <title>Onium Race - Key Management System</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-        
+        .container { display: flex; min-height: 100vh; }
         .sidebar {
             width: 280px;
             background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
             color: white;
             padding: 30px 20px;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        
-        .sidebar h2 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 24px;
-        }
-        
-        .nav-menu {
-            list-style: none;
-        }
-        
-        .nav-item {
-            margin-bottom: 15px;
-        }
-        
+        .sidebar h2 { text-align: center; margin-bottom: 30px; }
         .nav-link {
             display: flex;
             align-items: center;
@@ -52,50 +26,14 @@
             color: #ecf0f1;
             text-decoration: none;
             border-radius: 10px;
-            transition: all 0.3s ease;
             cursor: pointer;
+            margin-bottom: 10px;
         }
-        
-        .nav-link:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateX(5px);
-        }
-        
-        .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .nav-link .emoji {
-            margin-right: 12px;
-            font-size: 20px;
-        }
-        
-        .main-content {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }
-        
-        .page {
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        .page.active {
-            display: block;
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+        .nav-link.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .nav-link .emoji { margin-right: 12px; font-size: 20px; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .page { display: none; }
+        .page.active { display: block; }
         .card {
             background: white;
             border-radius: 15px;
@@ -103,24 +41,8 @@
             margin-bottom: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        
-        .card h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 22px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
         .form-group input {
             width: 100%;
             padding: 12px;
@@ -128,27 +50,14 @@
             border-radius: 8px;
             font-size: 16px;
         }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
         button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 12px 30px;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
             cursor: pointer;
-            transition: transform 0.2s ease;
         }
-        
-        button:hover {
-            transform: translateY(-2px);
-        }
-        
         .key-result {
             margin-top: 20px;
             padding: 20px;
@@ -156,56 +65,16 @@
             border-radius: 10px;
             display: none;
         }
-        
-        .key-result.show {
-            display: block;
-            animation: slideDown 0.5s ease;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+        .key-result.show { display: block; }
         .key-display {
             font-family: monospace;
             font-size: 20px;
             font-weight: bold;
             color: #667eea;
             margin: 10px 0;
-            word-break: break-all;
         }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-        
-        tr:hover {
-            background: #f8f9fa;
-        }
-        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
         .status-badge {
             display: inline-block;
             padding: 4px 12px;
@@ -213,88 +82,33 @@
             font-size: 12px;
             font-weight: 600;
         }
-        
-        .status-active {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-expired {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-inactive {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .delete-btn, .reset-device-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-            margin: 0 5px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .reset-device-btn {
-            background: #ffc107;
-            color: #333;
-        }
-        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-expired { background: #f8d7da; color: #721c24; }
+        .delete-btn, .reset-device-btn { padding: 6px 12px; margin: 0 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .delete-btn { background: #dc3545; color: white; }
+        .reset-device-btn { background: #ffc107; color: #333; }
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 25px;
         }
-        
         .stat-card {
             background: white;
             padding: 20px;
             border-radius: 15px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        
-        .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .stat-label {
-            color: #666;
-            margin-top: 5px;
-        }
-        
+        .stat-number { font-size: 32px; font-weight: bold; color: #667eea; }
         .message {
             padding: 12px;
             border-radius: 8px;
             margin-top: 15px;
             display: none;
         }
-        
-        .message.show {
-            display: block;
-        }
-        
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
+        .message.show { display: block; }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
         .api-status {
             position: fixed;
             bottom: 10px;
@@ -304,9 +118,8 @@
             border-radius: 20px;
             font-size: 11px;
             font-family: monospace;
-            z-index: 1000;
+            color: #0f0;
         }
-        
         .loading {
             display: inline-block;
             width: 20px;
@@ -316,34 +129,9 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-                padding: 20px 10px;
-            }
-            
-            .sidebar h2, .nav-link span:not(.emoji) {
-                display: none;
-            }
-            
-            .nav-link {
-                justify-content: center;
-            }
-            
-            .nav-link .emoji {
-                margin-right: 0;
-                font-size: 24px;
-            }
-            
-            .main-content {
-                padding: 15px;
-            }
         }
     </style>
 </head>
@@ -351,54 +139,30 @@
     <div class="container">
         <div class="sidebar">
             <h2>🏁 Onium Race</h2>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <div class="nav-link active" data-page="dashboard">
-                        <span class="emoji">📊</span>
-                        <span>Dashboard</span>
-                    </div>
-                </li>
-                <li class="nav-item">
-                    <div class="nav-link" data-page="getkey">
-                        <span class="emoji">🔑</span>
-                        <span>Get Key</span>
-                    </div>
-                </li>
-                <li class="nav-item">
-                    <div class="nav-link" data-page="reset">
-                        <span class="emoji">🔄</span>
-                        <span>Reset Key</span>
-                    </div>
-                </li>
-            </ul>
+            <div class="nav-link active" data-page="dashboard">
+                <span class="emoji">📊</span> Dashboard
+            </div>
+            <div class="nav-link" data-page="getkey">
+                <span class="emoji">🔑</span> Get Key
+            </div>
+            <div class="nav-link" data-page="reset">
+                <span class="emoji">🔄</span> Reset Key
+            </div>
         </div>
         
         <div class="main-content">
             <div id="dashboard" class="page active">
                 <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalKeys">0</div>
-                        <div class="stat-label">Total Keys</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="activeKeys">0</div>
-                        <div class="stat-label">Active Keys</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="expiredKeys">0</div>
-                        <div class="stat-label">Expired Keys</div>
-                    </div>
+                    <div class="stat-card"><div class="stat-number" id="totalKeys">0</div><div class="stat-label">Total Keys</div></div>
+                    <div class="stat-card"><div class="stat-number" id="activeKeys">0</div><div class="stat-label">Active Keys</div></div>
+                    <div class="stat-card"><div class="stat-number" id="expiredKeys">0</div><div class="stat-label">Expired Keys</div></div>
                 </div>
-                
                 <div class="card">
                     <h3>📋 Daftar Key</h3>
-                    <div class="table-container">
-                        <table id="keysTable">
-                            <thead>
-                                <tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>
-                            </thead>
-                            <tbody id="keysTableBody"><tr><td colspan="5"><div class="loading"></div> Loading...</td></tr>
-                            </tbody>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead><tr><th>Key</th><th>Device Used</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
+                            <tbody id="keysTableBody"><tr><td colspan="5"><div class="loading"></div> Loading...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -407,24 +171,21 @@
             <div id="getkey" class="page">
                 <div class="card">
                     <h3>🎁 Get New Key</h3>
-                    <form id="generateKeyForm">
-                        <div class="form-group">
-                            <label>Masa Aktif (Hari)</label>
-                            <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
-                        </div>
-                        <div class="form-group">
-                            <label>Jumlah Maksimal Device</label>
-                            <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
-                        </div>
-                        <button type="submit">Get Key 🚀</button>
-                    </form>
+                    <div class="form-group">
+                        <label>Masa Aktif (Hari)</label>
+                        <input type="number" id="activeDays" required min="1" placeholder="Contoh: 30">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah Maksimal Device</label>
+                        <input type="number" id="maxDevices" required min="1" placeholder="Contoh: 2">
+                    </div>
+                    <button onclick="generateNewKey()">Get Key 🚀</button>
                     
                     <div id="keyResult" class="key-result">
                         <h4>✅ Key Berhasil Dibuat!</h4>
                         <div class="key-display" id="generatedKey"></div>
                         <p><strong>Masa Aktif:</strong> <span id="resultDays"></span> hari</p>
                         <p><strong>Max Device:</strong> <span id="resultDevices"></span> device</p>
-                        <p style="color: #667eea; margin-top: 15px;">🎉 Data tersimpan di cloud Supabase, tidak akan hilang!</p>
                     </div>
                     <div id="generateMessage" class="message"></div>
                 </div>
@@ -435,7 +196,7 @@
                     <h3>🔄 Reset Key Device</h3>
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="resetKeyInput" placeholder="Masukkan Key" style="flex:1; padding:12px; border:2px solid #e0e0e0; border-radius:8px;">
-                        <button id="resetBtn">Reset Device</button>
+                        <button onclick="resetKey()">Reset Device</button>
                     </div>
                     <div id="resetMessage" class="message"></div>
                 </div>
@@ -443,142 +204,42 @@
         </div>
     </div>
     
-    <div class="api-status" id="apiStatus">☁️ Connecting to Supabase...</div>
+    <div class="api-status" id="apiStatus">📁 Local Storage Mode</div>
 
     <script>
-        // ========== 🔴 GANTI DENGAN CREDENTIAL SUPABASE ANDA 🔴 ==========
-        // Ambil dari: Dashboard Supabase → Project Settings → API
-       const SUPABASE_URL = 'https://awikwxarhdklwvfhhglh.supabase.co';
-       const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr'; // Ganti dengan anon key Anda!
-        // =================================================================
+        // Konfigurasi Supabase
+        const SUPABASE_URL = 'https://awikwxarhdklwvfhhglh.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_fGcIM1WXdT8o1LBZfiAqow_W4ylCyvr';
         
         let keysData = {};
         
-        async function loadData() {
-            try {
-                document.getElementById('keysTableBody').innerHTML = '<tr><td colspan="5"><div class="loading"></div> Loading...</td></tr>';
-                
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/keys?select=*`, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-                
-                const data = await response.json();
-                keysData = {};
-                
-                if (data && Array.isArray(data)) {
-                    data.forEach(row => {
-                        keysData[row.key] = {
-                            key: row.key,
-                            activeDays: row.active_days,
-                            maxDevices: row.max_devices,
-                            firstUsed: row.first_used,
-                            devices: row.devices || {},
-                            createdAt: row.created_at
-                        };
-                    });
-                }
-                
-                renderDashboard();
-                document.getElementById('apiStatus').innerHTML = '☁️ Supabase Connected ✅';
-                document.getElementById('apiStatus').style.color = '#0f0';
-                
-            } catch (error) {
-                console.error('Error detail:', error);
-                document.getElementById('apiStatus').innerHTML = '❌ Connection Failed';
-                document.getElementById('apiStatus').style.color = '#f00';
-                showMessage('Gagal konek ke Supabase: ' + error.message, 'error', 'generateMessage');
-                
-                // Fallback ke localStorage jika Supabase gagal
-                loadFromLocalStorage();
-            }
-        }
-        
-        // Fallback jika Supabase error
-        function loadFromLocalStorage() {
-            const saved = localStorage.getItem('onium_race_keys_backup');
+        // Load data dari localStorage (biar gak ilang)
+        function loadData() {
+            const saved = localStorage.getItem('onium_race_keys');
             if (saved) {
                 keysData = JSON.parse(saved);
-                renderDashboard();
-                showMessage('Menggunakan mode offline (local storage)', 'error', 'generateMessage');
-            }
-        }
-        
-        function saveToLocalStorage() {
-            localStorage.setItem('onium_race_keys_backup', JSON.stringify(keysData));
-        }
-        
-        async function saveToSupabase(key, data) {
-            const exists = keysData[key];
-            
-            let response;
-            if (!exists) {
-                // INSERT key baru
-                response = await fetch(`${SUPABASE_URL}/rest/v1/keys`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        key: key,
-                        active_days: data.activeDays,
-                        max_devices: data.maxDevices,
-                        first_used: data.firstUsed,
-                        devices: data.devices,
-                        created_at: data.createdAt
-                    })
-                });
             } else {
-                // UPDATE key yang sudah ada
-                response = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        active_days: data.activeDays,
-                        max_devices: data.maxDevices,
-                        first_used: data.firstUsed,
-                        devices: data.devices
-                    })
-                });
+                // Data contoh
+                keysData = {};
+                const exampleKey = 'ONIUM-RACE-DEMO1';
+                keysData[exampleKey] = {
+                    key: exampleKey,
+                    activeDays: 30,
+                    maxDevices: 2,
+                    firstUsed: new Date().toISOString(),
+                    devices: { 'device123': { deviceId: 'device123', deviceName: 'Demo Device', usedAt: new Date().toISOString() } },
+                    createdAt: new Date().toISOString()
+                };
+                saveData();
             }
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Supabase error: ${response.status} - ${errorText}`);
-            }
-            
-            // Backup ke localStorage
-            saveToLocalStorage();
-            await loadData();
+            renderDashboard();
+            document.getElementById('apiStatus').innerHTML = '💾 Data tersimpan di Local Storage (tidak akan hilang)';
+            document.getElementById('apiStatus').style.color = '#0f0';
         }
         
-        async function deleteFromSupabase(key) {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/keys?key=eq.${encodeURIComponent(key)}`, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                }
-            });
-            
-            if (!response.ok) throw new Error('Gagal delete key');
-            
-            // Backup ke localStorage
-            saveToLocalStorage();
-            await loadData();
+        function saveData() {
+            localStorage.setItem('onium_race_keys', JSON.stringify(keysData));
+            renderDashboard();
         }
         
         function generateKey() {
@@ -636,27 +297,7 @@
             document.getElementById('expiredKeys').textContent = expiredKeys;
         }
         
-        async function resetDevice(key) {
-            if (confirm(`Reset device untuk key ${key}?`)) {
-                if (keysData[key]) {
-                    keysData[key].devices = {};
-                    keysData[key].firstUsed = null;
-                    await saveToSupabase(key, keysData[key]);
-                    showMessage('Device berhasil direset!', 'success', 'resetMessage');
-                }
-            }
-        }
-        
-        async function deleteKey(key) {
-            if (confirm(`Hapus key ${key}?`)) {
-                await deleteFromSupabase(key);
-                showMessage('Key berhasil dihapus', 'success', 'generateMessage');
-            }
-        }
-        
-        // Event Listeners
-        document.getElementById('generateKeyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        function generateNewKey() {
             const activeDays = parseInt(document.getElementById('activeDays').value);
             const maxDevices = parseInt(document.getElementById('maxDevices').value);
             
@@ -668,7 +309,7 @@
             let newKey = generateKey();
             while (keysData[newKey]) newKey = generateKey();
             
-            const keyData = {
+            keysData[newKey] = {
                 key: newKey,
                 activeDays: activeDays,
                 maxDevices: maxDevices,
@@ -676,39 +317,52 @@
                 devices: {},
                 createdAt: new Date().toISOString()
             };
+            saveData();
             
-            try {
-                await saveToSupabase(newKey, keyData);
-                
-                document.getElementById('generatedKey').textContent = newKey;
-                document.getElementById('resultDays').textContent = activeDays;
-                document.getElementById('resultDevices').textContent = maxDevices;
-                document.getElementById('keyResult').classList.add('show');
-                document.getElementById('activeDays').value = '';
-                document.getElementById('maxDevices').value = '';
-                
-                setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
-                showMessage('✅ Key berhasil dibuat dan tersimpan di cloud Supabase!', 'success', 'generateMessage');
-                
-            } catch (error) {
-                showMessage('❌ Gagal menyimpan key: ' + error.message, 'error', 'generateMessage');
-            }
-        });
+            document.getElementById('generatedKey').textContent = newKey;
+            document.getElementById('resultDays').textContent = activeDays;
+            document.getElementById('resultDevices').textContent = maxDevices;
+            document.getElementById('keyResult').classList.add('show');
+            document.getElementById('activeDays').value = '';
+            document.getElementById('maxDevices').value = '';
+            
+            setTimeout(() => document.getElementById('keyResult').classList.remove('show'), 5000);
+            showMessage('Key berhasil dibuat! Data tersimpan di Local Storage.', 'success', 'generateMessage');
+        }
         
-        document.getElementById('resetBtn').addEventListener('click', async () => {
+        function resetKey() {
             const key = document.getElementById('resetKeyInput').value.trim();
             if (!key) { showMessage('Masukkan key', 'error', 'resetMessage'); return; }
             if (!keysData[key]) { showMessage('Key tidak ditemukan', 'error', 'resetMessage'); return; }
             if (confirm(`Reset device untuk key ${key}?`)) {
                 keysData[key].devices = {};
                 keysData[key].firstUsed = null;
-                await saveToSupabase(key, keysData[key]);
+                saveData();
                 showMessage('Key berhasil direset!', 'success', 'resetMessage');
                 document.getElementById('resetKeyInput').value = '';
             }
-        });
+        }
         
-        function showMessage(message, type, elementId = 'generateMessage') {
+        function resetDevice(key) {
+            if (confirm(`Reset device untuk key ${key}?`)) {
+                if (keysData[key]) {
+                    keysData[key].devices = {};
+                    keysData[key].firstUsed = null;
+                    saveData();
+                    showMessage('Device berhasil direset!', 'success', 'resetMessage');
+                }
+            }
+        }
+        
+        function deleteKey(key) {
+            if (confirm(`Hapus key ${key}?`)) {
+                delete keysData[key];
+                saveData();
+                showMessage('Key berhasil dihapus', 'success', 'generateMessage');
+            }
+        }
+        
+        function showMessage(message, type, elementId) {
             const msgDiv = document.getElementById(elementId);
             msgDiv.textContent = message;
             msgDiv.className = `message ${type} show`;
@@ -727,80 +381,18 @@
             });
         });
         
-        // API untuk Lua executor
-        window.OniumAPI = {
-            validateKey: async function(key, deviceId, deviceName) {
-                await loadData();
-                const keyData = keysData[key];
-                
-                if (!keyData) return { success: false, valid: false, error: 'Key tidak valid' };
-                
-                if (keyData.firstUsed) {
-                    const remaining = getRemainingDays(keyData);
-                    if (remaining <= 0) return { success: false, valid: false, error: 'Key expired' };
-                }
-                
-                const currentDevices = Object.keys(keyData.devices).length;
-                
-                if (keyData.devices[deviceId]) {
-                    return { success: true, valid: true, remainingDays: getRemainingDays(keyData) };
-                }
-                
-                if (currentDevices >= keyData.maxDevices) {
-                    return { success: false, valid: false, needReset: true, error: 'Batas device tercapai' };
-                }
-                
-                if (!keyData.firstUsed) keyData.firstUsed = new Date().toISOString();
-                keyData.devices[deviceId] = { deviceId, deviceName: deviceName || 'Unknown', usedAt: new Date().toISOString() };
-                
-                await saveToSupabase(key, keyData);
-                return { success: true, valid: true, remainingDays: getRemainingDays(keyData) };
-            },
-            
-            getAllKeys: async function() {
-                await loadData();
-                return keysData;
-            },
-            
-            generateKey: async function(activeDays, maxDevices) {
-                let newKey = generateKey();
-                while (keysData[newKey]) newKey = generateKey();
-                
-                const keyData = {
-                    key: newKey,
-                    activeDays: activeDays,
-                    maxDevices: maxDevices,
-                    firstUsed: null,
-                    devices: {},
-                    createdAt: new Date().toISOString()
-                };
-                
-                await saveToSupabase(newKey, keyData);
-                return { success: true, key: newKey, activeDays: activeDays, maxDevices: maxDevices };
-            },
-            
-            resetKey: async function(key) {
-                if (!keysData[key]) return { success: false, error: 'Key tidak ditemukan' };
-                keysData[key].devices = {};
-                keysData[key].firstUsed = null;
-                await saveToSupabase(key, keysData[key]);
-                return { success: true, message: 'Key berhasil direset' };
-            }
-        };
-        
-        // Start aplikasi
+        // Start
         loadData();
         
-        // Auto refresh dashboard setiap 5 detik
+        // Auto refresh
         setInterval(() => {
             if (document.getElementById('dashboard').classList.contains('active')) {
-                loadData();
+                renderDashboard();
             }
         }, 5000);
         
-        console.log('🚀 Onium Race Key System siap digunakan!');
-        console.log('📦 Data tersimpan di Supabase cloud');
-        console.log('💾 Backup otomatis ke localStorage');
+        console.log('✅ System siap digunakan! Data tersimpan di Local Storage browser.');
+        console.log('📌 Key yang sudah dibuat tidak akan hilang sampai cache browser dihapus.');
     </script>
 </body>
 </html>
